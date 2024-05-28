@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Usuario</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-light bg-light">
+    <a class="navbar-brand" href="#">
+        <img src="/path/to/logo.png" width="30" height="30" class="d-inline-block align-top" alt="Logo">
+    </a>
+    <button id="logoutBtn" class="btn btn-outline-danger my-2 my-sm-0">Cerrar Sesión</button>
+</nav>
+<div class="container mt-5">
+    <h2>Panel de Usuario</h2>
+    <div id="panelContent">
+        <p>Cargando...</p>
+    </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script>
+    $(document).ready(function() {
+        const user = JSON.parse(localStorage.getItem('user'));
+        console.log('User:', user);
+
+        const checkWhatsAppSession = async () => {
+            try {
+                const response = await $.ajax({
+                    url: '/api/whatsapp/check-session',
+                    method: 'GET',
+                });
+                console.log('checkWhatsAppSession response:', response);
+                return response.isLoggedIn;
+            } catch (error) {
+                console.error('Error checking WhatsApp session:', error);
+                return false;
+            }
+        };
+
+        const renderSendMessageForm = () => {
+            console.log('Rendering send message form');
+            $('#panelContent').html(`
+                <h3>Bienvenido, ${user.Nombres}</h3>
+                <p>Su suscripción está activa hasta: ${user.SubscriptionEnd}</p>
+                <div id="sendMessageForm">
+                    <form id="messageForm">
+                        <div class="form-group">
+                            <label for="numero">Número de Teléfono</label>
+                            <input type="text" class="form-control" id="numero" name="numero" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="mensaje">Mensaje</label>
+                            <textarea class="form-control" id="mensaje" name="mensaje" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Enviar Mensaje</button>
+                    </form>
+                </div>
+            `);
+
+            $('#messageForm').on('submit', function(e) {
+                e.preventDefault();
+                const data = {
+                    numero: $('#numero').val(),
+                    mensaje: $('#mensaje').val()
+                };
+                console.log('Sending message:', data);
+                $.ajax({
+                    url: '/api/whatsapp/send-message',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function(response) {
+                        alert(response.message);
+                    },
+                    error: function(xhr) {
+                        alert('Error al enviar el mensaje.');
+                    }
+                });
+            });
+        };
+
+        const generateQRCode = async () => {
+            try {
+                const response = await $.ajax({
+                    url: '/api/whatsapp/generate-qr',
+                    method: 'GET',
+                });
+                console.log('generateQRCode response:', response);
+                $('#panelContent').html(`
+                    <h3>Bienvenido, ${user.Nombres}</h3>
+                    <p>Su suscripción está activa hasta: ${user.SubscriptionEnd}</p>
+                    <div id="qrcode"><img src="${response.qrCode}" alt="QR Code"></div>
+                `);
+            } catch (error) {
+                console.error('Error generating QR code:', error);
+            }
+        };
+
+        if (user) {
+            if (user.IsSubscribed != 0) {
+                checkWhatsAppSession().then(isLoggedIn => {
+                    console.log('isLoggedIn:', isLoggedIn);
+                    if (isLoggedIn) {
+                        renderSendMessageForm();
+                    } else {
+                        generateQRCode();
+                        setInterval(generateQRCode, 10000);
+                    }
+                });
+            } else {
+                $('#panelContent').html(`
+                    <p>Necesita suscribirse para acceder a esta funcionalidad.</p>
+                    <h4>Opciones de Suscripción</h4>
+                    <form id="subscriptionForm">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="subscription" id="oneYear" value="1">
+                            <label class="form-check-label" for="oneYear">
+                                1 Año - $150
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="subscription" id="twoYears" value="2">
+                            <label class="form-check-label" for="twoYears">
+                                2 Años - $300
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="subscription" id="threeYears" value="3">
+                            <label class="form-check-label" for="threeYears">
+                                3 Años - $450
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="card-element">Datos de la tarjeta</label>
+                            <div id="card-element" class="form-control"></div>
+                            <div id="card-errors" role="alert" class="text-danger mt-2"></div>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3">Suscribirse</button>
+                    </form>
+                `);
+
+                const stripe = Stripe('your-stripe-publishable-key');
+                const elements = stripe.elements();
+                const card = elements.create('card');
+                card.mount('#card-element');
+
+                card.on('change', function(event) {
+                    const displayError = document.getElementById('card-errors');
+                    if (event.error) {
+                        displayError.textContent = event.error.message;
+                    } else {
+                        displayError.textContent = '';
+                    }
+                });
+
+                $('#subscriptionForm').on('submit', function(e) {
+                    e.preventDefault();
+                    const subscriptionDuration = $('input[name="subscription"]:checked').val();
+                    stripe.createToken(card).then(function(result) {
+                        if (result.error) {
+                            const errorElement = document.getElementById('card-errors');
+                            errorElement.textContent = result.error.message;
+                        } else {
+                            $.ajax({
+                                url: '/api/payment',
+                                method: 'POST',
+                                contentType: 'application/json',
+                                data: JSON.stringify({
+                                    token: result.token.id,
+                                    subscriptionDuration: subscriptionDuration,
+                                    userId: user.IdUsuario
+                                }),
+                                success: function(response) {
+                                    alert('Pago realizado con éxito.');
+                                    user.IsSubscribed = true;
+                                    user.SubscriptionEnd = new Date(new Date().setFullYear(new Date().getFullYear() + parseInt(subscriptionDuration))).toISOString().split('T')[0];
+                                    localStorage.setItem('user', JSON.stringify(user));
+                                    window.location.reload();
+                                },
+                                error: function(xhr) {
+                                    alert('Error al procesar el pago.');
+                                }
+                            });
+                        }
+                    });
+                });
+            }
+
+            $('#logoutBtn').on('click', function() {
+                localStorage.removeItem('user');
+                window.location.href = '/';
+            });
+        } else {
+            $('#panelContent').html('<p>No hay sesión activa.</p>');
+        }
+    });
+</script>
+</body>
+</html>
