@@ -176,6 +176,9 @@ const logout = async (req, res) => {
         await client.logout();
         isLoggedIn = false;
         qrCodeData = '';
+        client.initialize().catch((error) => {
+            console.error('Initialization error:', error);
+        });
         res.status(200).json({ message: 'Client logged out successfully.' });
     } catch (error) {
         console.error('Error logging out:', error);
