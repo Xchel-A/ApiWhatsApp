@@ -1,5 +1,3 @@
-const fs = require('fs');
-const https = require('https');
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
@@ -16,13 +14,11 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
 }));
-
 // Servir archivos estáticos desde el directorio 'public'
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'views')));
 
-// Rutas
-app.use('/api/auth', authRoutes);
+//app.use('/api/auth', authRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 
 // Cargar certificados SSL
@@ -31,7 +27,6 @@ const sslOptions = {
     cert: fs.readFileSync('/etc/ssl/private/selfsigned.crt')
 };
 
-// Crear servidor HTTPS
-https.createServer(sslOptions, app).listen(PORT, () => {
+app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
