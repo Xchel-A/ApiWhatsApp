@@ -15,9 +15,17 @@ const privateKey = fs.readFileSync('/etc/letsencrypt/live/dendenmushi.space/priv
 const certificate = fs.readFileSync('/etc/letsencrypt/live/dendenmushi.space/fullchain.pem', 'utf8');
 const credentials = { key: privateKey, cert: certificate };
 
-// Configura CORS para permitir solo el dominio dendemushi.com.mx
+// Configura CORS para permitir solo los dominios dendemushi.com.mx y whatsapi.dendenmushi.com.mx
+const allowedOrigins = ['https://dendemushi.com.mx', 'https://whatsapi.dendenmushi.com.mx'];
+
 const corsOptions = {
-    origin: 'https://dendemushi.com.mx',
+    origin: function (origin, callback) {
+        if (allowedOrigins.includes(origin) || !origin) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'Authorization']
 };
