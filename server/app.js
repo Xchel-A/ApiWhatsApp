@@ -14,18 +14,11 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
 }));
-// Servir archivos estáticos desde el directorio 'public'
-app.use(express.static(path.join(__dirname, 'public')));
+
 app.use(express.static(path.join(__dirname, 'views')));
 
-//app.use('/api/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
-
-// Cargar certificados SSL
-const sslOptions = {
-    key: fs.readFileSync('/etc/ssl/private/selfsigned.key'),
-    cert: fs.readFileSync('/etc/ssl/private/selfsigned.crt')
-};
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
