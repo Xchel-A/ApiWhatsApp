@@ -98,13 +98,18 @@
                 console.error('Error generating QR code:', error);
             }
         };
-
+        var formMessageRender = false;
         const checkAndRender = async () => {
             const isLoggedIn = await checkWhatsAppSession();
             console.log('isLoggedIn:', isLoggedIn);
             if (isLoggedIn) {
-                renderSendMessageForm();
+                formMessageRender = true;
+                if(formMessageRender){
+                    renderSendMessageForm();
+
+                }
             } else {
+                formMessageRender = false;
                 generateQRCode();
             }
         };
