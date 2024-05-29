@@ -1,9 +1,9 @@
 const express = require('express');
 const {
-    generateQR, sendMessage, checkSession,
+    initializeClient, generateQR, sendMessage, checkSession,
     getChats, getContacts, getChatById,
     getChatMessages, sendMedia, getProfilePicUrl,
-    getState, logout, initializeClient
+    getState, logout
 } = require('../controllers/whatsappController');
 const router = express.Router();
 

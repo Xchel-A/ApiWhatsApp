@@ -219,7 +219,7 @@ const logout = async (req, res) => {
 };
 
 module.exports = { 
-    generateQR, sendMessage, checkSession, 
+    initializeClient, generateQR, sendMessage, checkSession, 
     getChats, getContacts, getChatById, 
     getChatMessages, sendMedia, getProfilePicUrl, 
     getState, logout 
