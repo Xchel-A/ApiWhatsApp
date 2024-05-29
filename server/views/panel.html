@@ -12,6 +12,7 @@
         <img src="/path/to/logo.png" width="30" height="30" class="d-inline-block align-top" alt="Logo">
     </a>
     <button id="logoutBtn" class="btn btn-outline-danger my-2 my-sm-0">Cerrar Sesión</button>
+    <button id="waLogoutBtn" class="btn btn-outline-warning my-2 my-sm-0 ml-2">Cerrar Sesión WhatsApp</button>
 </nav>
 <div class="container mt-5">
     <h2>Panel de Usuario</h2>
@@ -98,17 +99,20 @@
             }
         };
 
+        const checkAndRender = async () => {
+            const isLoggedIn = await checkWhatsAppSession();
+            console.log('isLoggedIn:', isLoggedIn);
+            if (isLoggedIn) {
+                renderSendMessageForm();
+            } else {
+                generateQRCode();
+            }
+        };
+
         if (user) {
             if (user.IsSubscribed != 0) {
-                checkWhatsAppSession().then(isLoggedIn => {
-                    console.log('isLoggedIn:', isLoggedIn);
-                    if (isLoggedIn) {
-                        renderSendMessageForm();
-                    } else {
-                        generateQRCode();
-                        setInterval(generateQRCode, 10000);
-                    }
-                });
+                checkAndRender();
+                setInterval(checkAndRender, 10000); // Verificar la sesión cada 10 segundos
             } else {
                 $('#panelContent').html(`
                     <p>Necesita suscribirse para acceder a esta funcionalidad.</p>
@@ -191,6 +195,20 @@
             $('#logoutBtn').on('click', function() {
                 localStorage.removeItem('user');
                 window.location.href = '/';
+            });
+
+            $('#waLogoutBtn').on('click', async function() {
+                try {
+                    await $.ajax({
+                        url: '/api/whatsapp/logout',
+                        method: 'POST',
+                    });
+                    alert('Sesión de WhatsApp cerrada con éxito.');
+                    window.location.reload();
+                } catch (error) {
+                    console.error('Error al cerrar sesión de WhatsApp:', error);
+                    alert('Error al cerrar sesión de WhatsApp.');
+                }
             });
         } else {
             $('#panelContent').html('<p>No hay sesión activa.</p>');
