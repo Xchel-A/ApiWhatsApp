@@ -1,51 +1,62 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 
-client = new Client({
-    authStrategy: new LocalAuth(),
-    puppeteer: {
-        headless: true,
-        args: ['--no-sandbox', '--disable-gpu'],
-    },
-    webVersionCache: { type: 'remote', remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html' }
-});
+const clients = {};
 
-let qrCodeData = '';
-let isLoggedIn = false;
+const initializeClient = (userId) => {
+    if (!clients[userId]) {
+        const client = new Client({
+            authStrategy: new LocalAuth({ clientId: userId }),
+            puppeteer: {
+                headless: true,
+                args: ['--no-sandbox', '--disable-gpu'],
+            },
+            webVersionCache: { type: 'remote', remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html' }
+        });
 
-client.on('qr', (qr) => {
-    console.log('QR RECEIVED', qr);
-    qrCodeData = qr;
-});
+        clients[userId] = {
+            client,
+            qrCodeData: '',
+            isLoggedIn: false
+        };
 
-client.on('ready', () => {
-    console.log('Client is ready!');
-    isLoggedIn = true;
-});
+        client.on('qr', (qr) => {
+            console.log('QR RECEIVED', qr);
+            clients[userId].qrCodeData = qr;
+        });
 
-client.on('authenticated', () => {
-    console.log('Client is authenticated!');
-});
+        client.on('ready', () => {
+            console.log('Client is ready!');
+            clients[userId].isLoggedIn = true;
+        });
 
-client.on('auth_failure', (msg) => {
-    console.error('Authentication failure', msg);
-    isLoggedIn = false;
-});
+        client.on('authenticated', () => {
+            console.log('Client is authenticated!');
+        });
 
-client.on('disconnected', (reason) => {
-    console.log('Client was logged out:', reason);
-    isLoggedIn = false;
-    qrCodeData = '';
-});
+        client.on('auth_failure', (msg) => {
+            console.error('Authentication failure', msg);
+            clients[userId].isLoggedIn = false;
+        });
 
-client.initialize().catch((error) => {
-    console.error('Initialization error:', error);
-});
+        client.on('disconnected', (reason) => {
+            console.log('Client was logged out:', reason);
+            clients[userId].isLoggedIn = false;
+            clients[userId].qrCodeData = '';
+        });
+
+        client.initialize().catch((error) => {
+            console.error('Initialization error:', error);
+        });
+    }
+};
 
 const generateQR = async (req, res) => {
-    if (qrCodeData) {
+    const { userId } = req.body;
+    const clientInfo = clients[userId];
+    if (clientInfo && clientInfo.qrCodeData) {
         try {
-            const qrCodeUrl = await qrcode.toDataURL(qrCodeData);
+            const qrCodeUrl = await qrcode.toDataURL(clientInfo.qrCodeData);
             res.status(200).json({ qrCode: qrCodeUrl });
         } catch (error) {
             console.error('Error generating QR code:', error);
@@ -57,12 +68,13 @@ const generateQR = async (req, res) => {
 };
 
 const sendMessage = async (req, res) => {
-    const { numero, mensaje } = req.body;
-    if (!isLoggedIn) {
+    const { userId, numero, mensaje } = req.body;
+    const clientInfo = clients[userId];
+    if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
     try {
-        await client.sendMessage(`${numero}@c.us`, mensaje);
+        await clientInfo.client.sendMessage(`${numero}@c.us`, mensaje);
         res.status(200).json({ message: 'Mensaje enviado exitosamente.' });
     } catch (error) {
         console.error('Error sending message:', error);
@@ -71,15 +83,23 @@ const sendMessage = async (req, res) => {
 };
 
 const checkSession = (req, res) => {
-    res.status(200).json({ isLoggedIn });
+    const { userId } = req.body;
+    const clientInfo = clients[userId];
+    if (clientInfo) {
+        res.status(200).json({ isLoggedIn: clientInfo.isLoggedIn });
+    } else {
+        res.status(400).json({ message: 'Client not initialized' });
+    }
 };
 
 const getChats = async (req, res) => {
-    if (!isLoggedIn) {
+    const { userId } = req.body;
+    const clientInfo = clients[userId];
+    if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
     try {
-        const chats = await client.getChats();
+        const chats = await clientInfo.client.getChats();
         res.status(200).json(chats);
     } catch (error) {
         console.error('Error getting chats:', error);
@@ -88,11 +108,13 @@ const getChats = async (req, res) => {
 };
 
 const getContacts = async (req, res) => {
-    if (!isLoggedIn) {
+    const { userId } = req.body;
+    const clientInfo = clients[userId];
+    if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
     try {
-        const contacts = await client.getContacts();
+        const contacts = await clientInfo.client.getContacts();
         res.status(200).json(contacts);
     } catch (error) {
         console.error('Error getting contacts:', error);
@@ -101,12 +123,13 @@ const getContacts = async (req, res) => {
 };
 
 const getChatById = async (req, res) => {
-    const { chatId } = req.params;
-    if (!isLoggedIn) {
+    const { userId, chatId } = req.body;
+    const clientInfo = clients[userId];
+    if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
     try {
-        const chat = await client.getChatById(chatId);
+        const chat = await clientInfo.client.getChatById(chatId);
         res.status(200).json(chat);
     } catch (error) {
         console.error('Error getting chat by ID:', error);
@@ -115,12 +138,13 @@ const getChatById = async (req, res) => {
 };
 
 const getChatMessages = async (req, res) => {
-    const { chatId } = req.params;
-    if (!isLoggedIn) {
+    const { userId, chatId } = req.body;
+    const clientInfo = clients[userId];
+    if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
     try {
-        const chat = await client.getChatById(chatId);
+        const chat = await clientInfo.client.getChatById(chatId);
         const messages = await chat.fetchMessages({ limit: 50 });
         res.status(200).json(messages);
     } catch (error) {
@@ -130,13 +154,14 @@ const getChatMessages = async (req, res) => {
 };
 
 const sendMedia = async (req, res) => {
-    const { numero, mediaUrl, caption } = req.body;
-    if (!isLoggedIn) {
+    const { userId, numero, mediaUrl, caption } = req.body;
+    const clientInfo = clients[userId];
+    if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
     try {
-        const media = MessageMedia.fromUrl(mediaUrl);
-        await client.sendMessage(`${numero}@c.us`, media, { caption });
+        const media = await MessageMedia.fromUrl(mediaUrl);
+        await clientInfo.client.sendMessage(`${numero}@c.us`, media, { caption });
         res.status(200).json({ message: 'Media enviado exitosamente.' });
     } catch (error) {
         console.error('Error sending media:', error);
@@ -145,12 +170,13 @@ const sendMedia = async (req, res) => {
 };
 
 const getProfilePicUrl = async (req, res) => {
-    const { numero } = req.params;
-    if (!isLoggedIn) {
+    const { userId, numero } = req.body;
+    const clientInfo = clients[userId];
+    if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
     try {
-        const url = await client.getProfilePicUrl(`${numero}@c.us`);
+        const url = await clientInfo.client.getProfilePicUrl(`${numero}@c.us`);
         res.status(200).json({ url });
     } catch (error) {
         console.error('Error getting profile picture URL:', error);
@@ -159,11 +185,13 @@ const getProfilePicUrl = async (req, res) => {
 };
 
 const getState = async (req, res) => {
-    if (!isLoggedIn) {
+    const { userId } = req.body;
+    const clientInfo = clients[userId];
+    if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
     try {
-        const state = await client.getState();
+        const state = await clientInfo.client.getState();
         res.status(200).json({ state });
     } catch (error) {
         console.error('Error getting client state:', error);
@@ -172,17 +200,21 @@ const getState = async (req, res) => {
 };
 
 const logout = async (req, res) => {
-    try {
-        await client.logout();
-        isLoggedIn = false;
-        qrCodeData = '';
-        client.initialize().catch((error) => {
-            console.error('Initialization error:', error);
-        });
-        res.status(200).json({ message: 'Client logged out successfully.' });
-    } catch (error) {
-        console.error('Error logging out:', error);
-        res.status(500).json({ message: 'Error logging out', error });
+    const { userId } = req.body;
+    const clientInfo = clients[userId];
+    if (clientInfo) {
+        try {
+            await clientInfo.client.logout();
+            clientInfo.isLoggedIn = false;
+            clientInfo.qrCodeData = '';
+            delete clients[userId];
+            res.status(200).json({ message: 'Client logged out successfully.' });
+        } catch (error) {
+            console.error('Error logging out:', error);
+            res.status(500).json({ message: 'Error logging out', error });
+        }
+    } else {
+        res.status(400).json({ message: 'Client not initialized' });
     }
 };
 

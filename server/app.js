@@ -14,10 +14,11 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
 }));
-
+// Servir archivos estáticos desde el directorio 'public'
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'views')));
 
-app.use('/api/auth', authRoutes);
+//app.use('/api/auth', authRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 
 app.listen(PORT, () => {
