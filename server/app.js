@@ -12,8 +12,8 @@ const SSL_PORT = 3443;
 
 // Configura el uso de certificados SSL
 const sslOptions = {
-    key: fs.readFileSync('./ssl/selfsigned.key'),
-    cert: fs.readFileSync('./ssl/selfsigned.crt')
+    key: fs.readFileSync('../ssl/selfsigned.key'),
+    cert: fs.readFileSync('../ssl/selfsigned.crt')
 };
 
 app.use(express.json());
