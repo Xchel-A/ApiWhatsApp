@@ -16,7 +16,7 @@ const certificate = fs.readFileSync('/etc/letsencrypt/live/dendenmushi.space/ful
 const credentials = { key: privateKey, cert: certificate };
 
 // Configura CORS para permitir solo los dominios dendemushi.com.mx y whatsapi.dendenmushi.com.mx
-const allowedOrigins = ['https://dendemushi.com.mx', 'https://whatsapi.dendenmushi.com.mx'];
+const allowedOrigins = ['https://dendemushi.com.mx', 'https://whatsapi.dendenmushi.com.mx', 'https://tuservidorphp.com'];
 
 const corsOptions = {
     origin: function (origin, callback) {
@@ -30,7 +30,7 @@ const corsOptions = {
     allowedHeaders: ['Content-Type', 'Authorization']
 };
 
-app.use(cors(corsOptions));
+app.use(cors(corsOptions)); // Utiliza las opciones de CORS ajustadas
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
