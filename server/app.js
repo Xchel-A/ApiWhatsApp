@@ -15,8 +15,8 @@ const privateKey = fs.readFileSync('/etc/letsencrypt/live/dendenmushi.space/priv
 const certificate = fs.readFileSync('/etc/letsencrypt/live/dendenmushi.space/fullchain.pem', 'utf8');
 const credentials = { key: privateKey, cert: certificate };
 
-
-app.use(cors()); // Utiliza las opciones de CORS ajustadas
+// Configura CORS para permitir todas las solicitudes
+app.use(cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
