@@ -10,7 +10,7 @@ const router = express.Router();
 router.post('/initialize', (req, res) => {
     const { userId } = req.body;
     initializeClient(userId);
-    res.status(200).json({ message: 'Client initialized' });
+    res.status(200).json({ initialize: true,message: 'Client initialized' });
 });
 
 router.post('/generate-qr', generateQR);
