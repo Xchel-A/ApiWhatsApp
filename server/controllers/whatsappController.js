@@ -21,32 +21,35 @@ const initializeClient = (userId) => {
         };
 
         client.on('qr', (qr) => {
-            console.log('QR RECEIVED', qr);
+            console.log(`QR RECEIVED for user ${userId}`, qr);
             clients[userId].qrCodeData = qr;
         });
 
         client.on('ready', () => {
-            console.log('Client is ready!');
+            console.log(`Client for user ${userId} is ready!`);
             clients[userId].isLoggedIn = true;
+            clients[userId].qrCodeData = '';
         });
 
         client.on('authenticated', () => {
-            console.log('Client is authenticated!');
+            console.log(`Client for user ${userId} is authenticated!`);
         });
 
         client.on('auth_failure', (msg) => {
-            console.error('Authentication failure', msg);
+            console.error(`Authentication failure for user ${userId}`, msg);
             clients[userId].isLoggedIn = false;
         });
 
         client.on('disconnected', (reason) => {
-            console.log('Client was logged out:', reason);
+            console.log(`Client for user ${userId} was logged out:`, reason);
             clients[userId].isLoggedIn = false;
             clients[userId].qrCodeData = '';
+            client.destroy();  // Ensure client instance is destroyed
+            delete clients[userId];  // Remove client from the clients object
         });
 
         client.initialize().catch((error) => {
-            console.error('Initialization error:', error);
+            console.error(`Initialization error for user ${userId}:`, error);
         });
     }
 };
