@@ -53,17 +53,17 @@ const initializeClient = (userId) => {
 
                 try {
                     // Llamada a la API de contexto del cliente
-                    const contextResponse = await axios.post('https://api.tucontexto.com/context', { userId }, { timeout: 10000 });
-                    const context = contextResponse.data.context;
+                    //const contextResponse = await axios.post('https://api.tucontexto.com/context', { userId }, { timeout: 10000 });
+                    const context = 'Comportate como un asistente virtual';
 
                     // Inicializar sesión de ChatGPT
-                    await axios.post('https://dendenmushi.space:3001/init', { token: userId }, { timeout: 10000 });
+                    await axios.post('https://dendenmushi.space:3001/init', { token: userId }, { timeout: 20000 });
 
                     // Enviar el contexto como primer mensaje a ChatGPT
-                    await axios.post('https://dendenmushi.space:3001/chat', { token: userId, message: context }, { timeout: 10000 });
+                    await axios.post('https://dendenmushi.space:3001/chat', { token: userId, message: context }, { timeout: 20000 });
 
                     // Enviar el mensaje recibido por el cliente a ChatGPT
-                    const chatResponse = await axios.post('https://dendenmushi.space:3001/chat', { token: userId, message: msg.body }, { timeout: 10000 });
+                    const chatResponse = await axios.post('https://dendenmushi.space:3001/chat', { token: userId, message: msg.body }, { timeout: 20000 });
                     const replyMessage = chatResponse.data.response;
 
                     // Responder al cliente con el mensaje recibido de ChatGPT
