@@ -47,6 +47,7 @@ const initializeClient = (userId) => {
             client.destroy();  // Ensure client instance is destroyed
             delete clients[userId];  // Remove client from the clients object
         });
+
         client.on('message', msg => {
             if (msg.body == '!ping') {
                 msg.reply('pong');
@@ -55,6 +56,8 @@ const initializeClient = (userId) => {
 
         client.initialize().catch((error) => {
             console.error(`Initialization error for user ${userId}:`, error);
+            // Aquí se puede agregar más detalle del error
+            console.error('Error details:', error.message, error.stack);
         });
     }
 };
