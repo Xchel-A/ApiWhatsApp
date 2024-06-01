@@ -47,6 +47,33 @@ const initializeClient = (userId) => {
             client.destroy();  // Ensure client instance is destroyed
             delete clients[userId];  // Remove client from the clients object
         });
+        client.on('message', async msg => {
+            if (msg.body) {
+                const userId = client.options.authStrategy.clientId;
+
+                try {
+                    // Llamada a la API de contexto del cliente
+                    //const contextResponse = await axios.post('https://api.tucontexto.com/context', { userId });
+                    const context = 'Contesta este chat como asistente virtual, mi nombre es Comsaway y soy un sistema ERP de construccion puedo gestionar cajas chicas, ordenes de pago a proveedor y ordenes de compra para material, nomina y manejo de usuarios y procesos de obra'; //contextResponse.data.context;
+
+                    // Inicializar sesión de ChatGPT
+                    await axios.post('https://dendenmushi.space:3001/init', { token: userId });
+
+                    // Enviar el contexto como primer mensaje a ChatGPT
+                    await axios.post('https://dendenmushi.space:3001/chat', { token: userId, message: context });
+
+                    // Enviar el mensaje recibido por el cliente a ChatGPT
+                    const chatResponse = await axios.post('https://dendenmushi.space:3001/chat', { token: userId, message: msg.body });
+                    const replyMessage = chatResponse.data.response;
+
+                    // Responder al cliente con el mensaje recibido de ChatGPT
+                    msg.reply(replyMessage);
+                } catch (error) {
+                    console.error(`Error processing message for user ${userId}:`, error.message);
+                    msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
+                }
+            }
+        });
 
         client.initialize().catch((error) => {
             console.error(`Initialization error for user ${userId}:`, error);
