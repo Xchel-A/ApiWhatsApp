@@ -1,5 +1,6 @@
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
+const axios = require('axios'); // Asegúrate de importar axios
 
 const clients = {};
 
