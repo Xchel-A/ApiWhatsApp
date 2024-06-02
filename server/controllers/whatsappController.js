@@ -51,12 +51,12 @@ const initializeClient = (userId) => {
         
         client.on('message', async msg => {
             // Validar si el mensaje proviene de un grupo o si contiene medios
-            console.log(msg.isGroupMsg);
+            console.log(message.remote.endsWith('@g.us'));
             console.log(msg.hasMedia);
             console.log(msg.body);
 
 
-            if (msg.isGroupMsg || msg.hasMedia) {
+            if (message.remote.endsWith('@g.us') || msg.hasMedia) {
                 console.log('El mensaje es de un grupo o de media');
 
                 return;  // No responder a mensajes de grupo ni a mensajes con medios
