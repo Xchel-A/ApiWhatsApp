@@ -48,12 +48,34 @@ const initializeClient = (userId) => {
             delete clients[userId];  // Remove client from the clients object
         });
 
-        client.on('message', msg => {
-            if (msg.body == '!ping') {
-                msg.reply('pong');
+        client.on('message', async msg => {
+            // Validar si el mensaje proviene de un grupo
+            if (msg.isGroupMsg) {
+                return;  // No responder a mensajes de grupo
+            }
+        
+            if (msg.body) {
+                const userId = client.options.authStrategy.clientId;
+        
+                try {
+                    // Inicializar sesión de ChatGPT
+                    await axiosInstance.post('https://dendenmushi.space:3001/init', { token: userId });
+        
+                    // Enviar el mensaje recibido por el cliente a ChatGPT
+                    const chatResponse = await axiosInstance.post('https://dendenmushi.space:3001/chat', { token: userId, message: msg.body });
+                    const replyMessage = chatResponse.data.response;
+        
+                    // Responder al cliente con el mensaje recibido de ChatGPT
+                    msg.reply(replyMessage);
+                } catch (error) {
+                    console.error(`Error processing message for user ${userId}:`, error.message);
+                    msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
+                }
             }
         });
+        
 
+      
         client.initialize().catch((error) => {
             console.error(`Initialization error for user ${userId}:`, error);
             // Aquí se puede agregar más detalle del error
