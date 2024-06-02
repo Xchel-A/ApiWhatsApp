@@ -56,7 +56,7 @@ const initializeClient = (userId) => {
             console.log(msg.hasMedia);
             console.log(msg.body);
         
-            if (msg.remote.endsWith('@g.us') || msg.hasMedia) { // Cambié `message` por `msg`
+            if (msg.id.remote.endsWith('@g.us') || msg.hasMedia) { // Cambié `message` por `msg`
                 console.log('El mensaje es de un grupo o de media');
                 return;  // No responder a mensajes de grupo ni a mensajes con medios
             }
