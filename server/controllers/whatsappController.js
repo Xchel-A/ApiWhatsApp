@@ -51,12 +51,21 @@ const initializeClient = (userId) => {
         
         client.on('message', async msg => {
             // Validar si el mensaje proviene de un grupo o si contiene medios
+            console.log(msg.isGroupMsg);
+            console.log(msg.hasMedia);
+            console.log(msg.body);
+
+
             if (msg.isGroupMsg || msg.hasMedia) {
+                console.log('El mensaje es de un grupo o de media');
+
                 return;  // No responder a mensajes de grupo ni a mensajes con medios
+
             }
 
             if (msg.body) {
                 const userId = client.options.authStrategy.clientId;
+                console.log('el mensaje tiene contenido');
 
                 try {
                     // Inicializar sesión de ChatGPT con un timeout de 30 segundos
@@ -65,6 +74,7 @@ const initializeClient = (userId) => {
                     // Enviar el mensaje recibido por el cliente a ChatGPT con un timeout de 30 segundos
                     const chatResponse = await axios.post('https://dendenmushi.space:3001/chat', { token: userId, message: msg.body }, { timeout: 300000 });
                     const replyMessage = chatResponse.data.response;
+                    console.log(replyMessage);
 
                     // Responder al cliente con el mensaje recibido de ChatGPT
                     msg.reply(replyMessage);
