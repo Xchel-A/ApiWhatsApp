@@ -50,28 +50,29 @@ const initializeClient = (userId) => {
 
         client.on('message', async msg => {
             // Validar si el mensaje proviene de un grupo
-            if (msg.isGroupMsg) {
-                return;  // No responder a mensajes de grupo
-            }
+            console.log(msg);
+            // if (msg.isGroupMsg) {
+            //     return;  // No responder a mensajes de grupo
+            // }
         
-            if (msg.body) {
-                const userId = client.options.authStrategy.clientId;
+            // if (msg.body) {
+            //     const userId = client.options.authStrategy.clientId;
         
-                try {
-                    // Inicializar sesión de ChatGPT
-                    await axiosInstance.post('https://dendenmushi.space:3001/init', { token: userId });
+            //     try {
+            //         // Inicializar sesión de ChatGPT
+            //         await axiosInstance.post('https://dendenmushi.space:3001/init', { token: userId });
         
-                    // Enviar el mensaje recibido por el cliente a ChatGPT
-                    const chatResponse = await axiosInstance.post('https://dendenmushi.space:3001/chat', { token: userId, message: msg.body });
-                    const replyMessage = chatResponse.data.response;
+            //         // Enviar el mensaje recibido por el cliente a ChatGPT
+            //         const chatResponse = await axiosInstance.post('https://dendenmushi.space:3001/chat', { token: userId, message: msg.body });
+            //         const replyMessage = chatResponse.data.response;
         
-                    // Responder al cliente con el mensaje recibido de ChatGPT
-                    msg.reply(replyMessage);
-                } catch (error) {
-                    console.error(`Error processing message for user ${userId}:`, error.message);
-                    msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
-                }
-            }
+            //         // Responder al cliente con el mensaje recibido de ChatGPT
+            //         msg.reply(replyMessage);
+            //     } catch (error) {
+            //         console.error(`Error processing message for user ${userId}:`, error.message);
+            //         msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
+            //     }
+            // }
         });
         
 
