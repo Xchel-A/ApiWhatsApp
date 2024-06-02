@@ -48,33 +48,32 @@ const initializeClient = (userId) => {
             delete clients[userId];  // Remove client from the clients object
         });
 
+        
         client.on('message', async msg => {
-            // Validar si el mensaje proviene de un grupo
-            console.log(msg);
-            // if (msg.isGroupMsg) {
-            //     return;  // No responder a mensajes de grupo
-            // }
-        
-            // if (msg.body) {
-            //     const userId = client.options.authStrategy.clientId;
-        
-            //     try {
-            //         // Inicializar sesión de ChatGPT
-            //         await axiosInstance.post('https://dendenmushi.space:3001/init', { token: userId });
-        
-            //         // Enviar el mensaje recibido por el cliente a ChatGPT
-            //         const chatResponse = await axiosInstance.post('https://dendenmushi.space:3001/chat', { token: userId, message: msg.body });
-            //         const replyMessage = chatResponse.data.response;
-        
-            //         // Responder al cliente con el mensaje recibido de ChatGPT
-            //         msg.reply(replyMessage);
-            //     } catch (error) {
-            //         console.error(`Error processing message for user ${userId}:`, error.message);
-            //         msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
-            //     }
-            // }
+            // Validar si el mensaje proviene de un grupo o si contiene medios
+            if (msg.isGroupMsg || msg.hasMedia) {
+                return;  // No responder a mensajes de grupo ni a mensajes con medios
+            }
+
+            if (msg.body) {
+                const userId = client.options.authStrategy.clientId;
+
+                try {
+                    // Inicializar sesión de ChatGPT con un timeout de 30 segundos
+                    await axios.post('https://dendenmushi.space:3001/init', { token: userId }, { timeout: 300000 });
+
+                    // Enviar el mensaje recibido por el cliente a ChatGPT con un timeout de 30 segundos
+                    const chatResponse = await axios.post('https://dendenmushi.space:3001/chat', { token: userId, message: msg.body }, { timeout: 300000 });
+                    const replyMessage = chatResponse.data.response;
+
+                    // Responder al cliente con el mensaje recibido de ChatGPT
+                    msg.reply(replyMessage);
+                } catch (error) {
+                    console.error(`Error processing message for user ${userId}:`, error.message);
+                    msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
+                }
+            }
         });
-        
 
       
         client.initialize().catch((error) => {
