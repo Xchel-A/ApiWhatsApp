@@ -71,7 +71,7 @@ const initializeClient = (userId) => {
                     const responseInit = await axios.post('https://dendenmushi.space:3001/init', { token: userId }, { timeout: 200000 });
                     console.log(responseInit);
                     // Enviar el mensaje recibido por el cliente a ChatGPT con un timeout de 30 segundos
-                    const chatResponse = await axios.post('https://dendenmushi.space:3001/chat', { token: userId, message: msg.body }, { timeout: 30000 });
+                    const chatResponse = await axios.post('https://dendenmushi.space:3001/chat', { token: userId, message: msg.body }, { timeout: 300000 });
                     const replyMessage = chatResponse.data.response;
                     console.log(chatResponse);
         
