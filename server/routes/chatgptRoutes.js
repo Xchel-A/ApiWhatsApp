@@ -9,9 +9,10 @@ router.post('/init', async (req, res) => {
   }
 
   try {
-    await chatgptController.initPuppeteer(token);
-    res.json({ session: false, message: 'Sesión inicializada', token });
+    const result = await chatgptController.initPuppeteer(token);
+    res.json(result);
   } catch (error) {
+    console.error(`Error al inicializar la sesión: ${error.message}`);
     res.status(500).json({ error: error.message });
   }
 });
@@ -26,6 +27,7 @@ router.post('/chat', async (req, res) => {
     const response = await chatgptController.sendMessageAndGetResponse(token, message);
     res.json({ response });
   } catch (error) {
+    console.error(`Error al enviar el mensaje: ${error.message}`);
     res.status(500).json({ error: error.message });
   }
 });
@@ -36,13 +38,23 @@ router.post('/close-session', (req, res) => {
     return res.status(400).json({ error: 'Token no proporcionado' });
   }
 
-  const result = chatgptController.closeSession(token);
-  res.status(result.error ? 404 : 200).json(result);
+  try {
+    const result = chatgptController.closeSession(token);
+    res.status(result.error ? 404 : 200).json(result);
+  } catch (error) {
+    console.error(`Error al cerrar la sesión: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 router.post('/close-all-sessions', (req, res) => {
-  const result = chatgptController.closeAllSessions();
-  res.json(result);
+  try {
+    const result = chatgptController.closeAllSessions();
+    res.json(result);
+  } catch (error) {
+    console.error(`Error al cerrar todas las sesiones: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 module.exports = router;
