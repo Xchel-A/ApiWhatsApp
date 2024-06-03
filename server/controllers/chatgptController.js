@@ -1,5 +1,3 @@
-// server/controllers/chatgptController.js
-
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const { exec } = require('child_process');
@@ -11,6 +9,11 @@ let sessions = {};
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function initPuppeteer(token) {
+  if (sessions[token]) {
+    console.log(`Sesión con token ${token} ya está abierta.`);
+    return { session: true, message: 'Sesión ya inicializada', token };
+  }
+
   exec('Xvfb :99 -screen 0 1280x1024x16 &', (error) => {
     if (error) {
       console.error(`Error al iniciar Xvfb: ${error.message}`);
@@ -56,6 +59,7 @@ async function initPuppeteer(token) {
   }
 
   sessions[token] = { browser, page, lastActivity: Date.now() };
+  return { session: false, message: 'Sesión inicializada', token };
 }
 
 async function sendMessageAndGetResponse(token, message) {
