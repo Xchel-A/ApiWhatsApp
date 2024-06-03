@@ -72,9 +72,9 @@ async function sendMessageAndGetResponse(token, message) {
   await page.type('textarea', message);
   await page.keyboard.press('Enter');
   
-
   await page.waitForSelector(`[data-message-author-role="user"]:last-child`);
   await wait(20000); // Esperar 20 segundos
+  
   const newResponse = await page.evaluate(async () => {
     const selector = '.markdown.prose.w-full.break-words';
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -87,8 +87,7 @@ async function sendMessageAndGetResponse(token, message) {
     while (!newMessageGenerated && retries < 160) {
       const responseMessages = Array.from(document.querySelectorAll('[data-message-author-role="assistant"]'));
       const lastMessage = responseMessages[responseMessages.length - 1];
-      console.log(responseMessages);
-
+      
       if (lastMessage) {
         const currentMessageId = lastMessage.getAttribute('data-message-id');
         if (currentMessageId !== lastMessageId) {
@@ -109,18 +108,20 @@ async function sendMessageAndGetResponse(token, message) {
       throw new Error("No se pudo obtener una nueva respuesta de ChatGPT en el tiempo esperado.");
     }
 
-    return responseText;
+    return { responseText, lastMessageId };
   });
 
   session.lastActivity = Date.now();
 
-  // Verificar si la respuesta contiene el mensaje de actividad inusual
-  if (newResponse.includes("Unusual activity has been detected from your device. Try again later.")) {
+  if (newResponse.responseText.includes("Unusual activity has been detected from your device. Try again later.")) {
     closeSession(token);
     throw new Error("Hubo un error, vuelve a intentarlo.");
   }
 
-  return newResponse;
+  // Guarda el último ID del mensaje
+  session.lastMessageId = newResponse.lastMessageId;
+
+  return newResponse.responseText;
 }
 
 function closeSession(token) {
