@@ -71,10 +71,10 @@ async function sendMessageAndGetResponse(token, message) {
   const { page } = session;
   await page.type('textarea', message);
   await page.keyboard.press('Enter');
-  await wait(20000); // Esperar 20 segundos
+  
 
   await page.waitForSelector(`[data-message-author-role="user"]:last-child`);
-
+  await wait(20000); // Esperar 20 segundos
   const newResponse = await page.evaluate(async () => {
     const selector = '.markdown.prose.w-full.break-words';
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
