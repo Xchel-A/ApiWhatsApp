@@ -2,13 +2,14 @@ const express = require('express');
 const session = require('express-session');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
 const https = require('https');
 const cors = require('cors');
-const authRoutes = require('./routes/authRoutes');
+
 const whatsappRoutes = require('./routes/whatsappRoutes');
+const chatgptRoutes = require('./routes/chatgptRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // Lee los certificados SSL
 const privateKey = fs.readFileSync('/etc/letsencrypt/live/dendenmushi.space/privkey.pem', 'utf8');
@@ -28,12 +29,30 @@ app.use(session({
 
 app.use(express.static(path.join(__dirname, 'views')));
 
-app.use('/api/auth', authRoutes);
+// Usar las rutas de WhatsApp y Puppeteer
 app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/puppeteer', chatgptRoutes);
+
+// Redirigir tráfico HTTP a HTTPS
+const httpApp = express();
+httpApp.use((req, res, next) => {
+  if (req.secure) {
+    return next();
+  }
+  res.redirect(`https://${req.headers.host}${req.url}`);
+});
 
 // Crea el servidor HTTPS
 const httpsServer = https.createServer(credentials, app);
+const httpServer = http.createServer(httpApp);
 
-httpsServer.listen(PORT, () => {
-    console.log(`HTTPS Server running on port ${PORT}`);
+const HTTPS_PORT = 443;
+const HTTP_PORT = 80;
+
+httpsServer.listen(HTTPS_PORT, () => {
+    console.log(`HTTPS Server running on port ${HTTPS_PORT}`);
+});
+
+httpServer.listen(HTTP_PORT, () => {
+    console.log(`HTTP Server running on port ${HTTP_PORT} and redirecting to HTTPS`);
 });
