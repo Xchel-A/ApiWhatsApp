@@ -113,6 +113,13 @@ async function sendMessageAndGetResponse(token, message) {
   });
 
   session.lastActivity = Date.now();
+
+  // Verificar si la respuesta contiene el mensaje de actividad inusual
+  if (newResponse.includes("Unusual activity has been detected from your device. Try again later.")) {
+    closeSession(token);
+    throw new Error("Hubo un error, vuelve a intentarlo.");
+  }
+
   return newResponse;
 }
 
