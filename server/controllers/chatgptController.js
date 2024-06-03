@@ -73,7 +73,7 @@ async function sendMessageAndGetResponse(token, message) {
   await page.keyboard.press('Enter');
   
   await page.waitForSelector(`[data-message-author-role="user"]:last-child`);
-  await wait(20000); // Esperar 20 segundos
+  await wait(30000); // Esperar 20 segundos
   
   const newResponse = await page.evaluate(async () => {
     const selector = '.markdown.prose.w-full.break-words';
