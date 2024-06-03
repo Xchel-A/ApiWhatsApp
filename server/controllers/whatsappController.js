@@ -68,12 +68,12 @@ const initializeClient = (userId) => {
         
                 try {
                     // Inicializar sesión de ChatGPT con un timeout de 30 segundos
-                    await axios.post('https://dendenmushi.space:3001/init', { token: userId }, { timeout: 30000 });
-        
+                    const responseInit = await axios.post('https://dendenmushi.space:3001/init', { token: userId }, { timeout: 200000 });
+                    console.log(responseInit);
                     // Enviar el mensaje recibido por el cliente a ChatGPT con un timeout de 30 segundos
                     const chatResponse = await axios.post('https://dendenmushi.space:3001/chat', { token: userId, message: msg.body }, { timeout: 30000 });
                     const replyMessage = chatResponse.data.response;
-                    console.log(replyMessage);
+                    console.log(chatResponse);
         
                     // Responder al cliente con el mensaje recibido de ChatGPT
                     msg.reply(replyMessage);
