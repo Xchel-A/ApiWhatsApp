@@ -62,16 +62,21 @@ const initializeClient = (userId) => {
                 return;  // No responder a mensajes de grupo ni a mensajes con medios
             }
         
-            if (msg.body) {
+            // Verificar si el mensaje comienza con !gpt:
+            if (msg.body && msg.body.startsWith('!gpt:')) {
                 const userId = client.options.authStrategy.clientId;
-                console.log('El mensaje tiene contenido');
+                console.log('El mensaje tiene contenido y comienza con !gpt:');
+        
+                // Extraer el contenido después de !gpt:
+                const userMessage = msg.body.slice(5).trim();
         
                 try {
                     // Inicializar sesión de ChatGPT con un timeout de 30 segundos
-                    const responseInit = await axios.post('https://dendenmushi.space:3001/init', { token: userId }, { timeout: 200000 });
+                    const responseInit = await axios.post('https://dendenmushi.space/api/chatgpt/init', { token: userId }, { timeout: 200000 });
                     console.log(responseInit);
+        
                     // Enviar el mensaje recibido por el cliente a ChatGPT con un timeout de 30 segundos
-                    const chatResponse = await axios.post('https://dendenmushi.space:3001/chat', { token: userId, message: msg.body }, { timeout: 300000 });
+                    const chatResponse = await axios.post('https://dendenmushi.space/api/chatgpt/chat', { token: userId, message: userMessage }, { timeout: 300000 });
                     const replyMessage = chatResponse.data.response;
                     console.log(chatResponse);
         
@@ -81,8 +86,11 @@ const initializeClient = (userId) => {
                     console.error(`Error processing message for user ${userId}:`, error.message);
                     msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
                 }
+            } else {
+                console.log('El mensaje no comienza con !gpt:, ignorándolo.');
             }
         });
+        
         
       
         client.initialize().catch((error) => {
