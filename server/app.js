@@ -7,7 +7,7 @@ const https = require('https');
 const cors = require('cors');
 
 const whatsappRoutes = require('./routes/whatsappRoutes');
-const chatgptRoutes = require('./routes/chatgptRoutes');
+const chatgptRoutes = require('./routes/chatgptRoutes'); // Asegúrate de que este nombre coincida exactamente
 
 const app = express();
 
@@ -29,9 +29,9 @@ app.use(session({
 
 app.use(express.static(path.join(__dirname, 'views')));
 
-// Usar las rutas de WhatsApp y Puppeteer
+// Usar las rutas de WhatsApp y ChatGPT
 app.use('/api/whatsapp', whatsappRoutes);
-app.use('/api/puppeteer', chatgptRoutes);
+app.use('/api/chatgpt', chatgptRoutes);
 
 // Redirigir tráfico HTTP a HTTPS
 const httpApp = express();
