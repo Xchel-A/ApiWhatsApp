@@ -82,7 +82,7 @@ const initializeClient = (userId) => {
                     msg.reply(replyMessage);
                 } catch (error) {
                     console.error(`Error processing message for user ${userId}:`, error.message);
-                    msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
+                    //msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
                 }
             } else {
                 console.log('El mensaje no comienza con !gpt:, validando palabras clave del usuario.');
@@ -102,7 +102,7 @@ const initializeClient = (userId) => {
                     }
                 } catch (error) {
                     console.error(`Error validating keywords for user ${userId}:`, error.message);
-                    msg.reply('Lo siento, hubo un error al validar tu mensaje.');
+                    //msg.reply('Lo siento, hubo un error al validar tu mensaje.');
                 }
             }
         });
