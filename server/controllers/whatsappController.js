@@ -52,19 +52,17 @@ const initializeClient = (userId) => {
         
         client.on('message', async msg => {
             // Validar si el mensaje proviene de un grupo o si contiene medios
-            //console.log(msg);
-            //console.log(msg.id.remote.endsWith('@g.us')); // Cambié `message` por `msg`
-            //console.log(msg.hasMedia);
             console.log(msg.body);
         
-            if (msg.id.remote.endsWith('@g.us') || msg.hasMedia) { // Cambié `message` por `msg`
+            if (msg.id.remote.endsWith('@g.us') || msg.hasMedia) {
                 console.log('El mensaje es de un grupo o de media');
                 return;  // No responder a mensajes de grupo ni a mensajes con medios
             }
         
+            const userId = client.options.authStrategy.clientId;
+        
             // Verificar si el mensaje comienza con !gpt:
             if (msg.body && msg.body.startsWith('!gpt:')) {
-                const userId = client.options.authStrategy.clientId;
                 console.log('El mensaje tiene contenido y comienza con !gpt:');
         
                 // Extraer el contenido después de !gpt:
@@ -87,7 +85,25 @@ const initializeClient = (userId) => {
                     msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
                 }
             } else {
-                console.log('El mensaje no comienza con !gpt:, ignorándolo.');
+                console.log('El mensaje no comienza con !gpt:, validando palabras clave del usuario.');
+        
+                // Extraer el contenido del mensaje completo
+                const userMessage = msg.body.trim();
+        
+                try {
+                    // Validar palabras clave del cliente
+                    const validationResponse = await axios.post('https://whatsapi.dendenmushi.com.mx/api/validate/keywords', { token: userId, message: userMessage }, { timeout: 30000 });
+                    
+                    if (validationResponse.data.valid) {
+                        // Responder al cliente con la respuesta encontrada
+                        msg.reply(validationResponse.data.response);
+                    } else {
+                        console.log('No se encontraron palabras clave coincidentes.');
+                    }
+                } catch (error) {
+                    console.error(`Error validating keywords for user ${userId}:`, error.message);
+                    msg.reply('Lo siento, hubo un error al validar tu mensaje.');
+                }
             }
         });
         
