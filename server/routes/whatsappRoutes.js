@@ -7,10 +7,19 @@ const {
 } = require('../controllers/whatsappController');
 const router = express.Router();
 
-router.post('/initialize', (req, res) => {
+router.post('/initialize', async (req, res) => {
     const { userId } = req.body;
-    initializeClient(userId);
-    res.status(200).json({ initialize: true,message: 'Client initialized' });
+    if (!userId) {
+        return res.status(400).json({ error: 'userId no proporcionado' });
+    }
+
+    try {
+        const result = await initializeClient(userId);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error(`Error al inicializar la sesión: ${error.message}`);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 router.post('/generate-qr', generateQR);
