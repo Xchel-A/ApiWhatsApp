@@ -219,7 +219,7 @@ const getChatById = async (req, res) => {
     }
     try {
         const chat = await clientInfo.client.getChatById(chatId);
-        res.status{ 200 }.json(chat);
+        res.status(200).json(chat);
     } catch (error) {
         console.error('Error getting chat by ID:', error);
         res.status(500).json({ message: 'Error getting chat by ID', error });
