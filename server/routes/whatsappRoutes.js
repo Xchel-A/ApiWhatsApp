@@ -18,15 +18,15 @@ router.post('/initialize', async (req, res) => {
 
         // Manejar las respuestas según el resultado de la función initializeClient
         if (result.isLoggedIn) {
-            res.status(200).json(result);
+            return res.status(200).json(result);
         } else if (result.message === 'Invalid token') {
-            res.status(401).json(result);
+            return res.status(401).json(result);
         } else if (result.message === 'Error validating token') {
-            res.status(500).json(result);
+            return res.status(500).json(result);
         } else if (result.message === 'Client initialization failed') {
-            res.status(500).json(result);
+            return res.status(500).json(result);
         } else {
-            res.status(200).json(result);
+            return res.status(200).json(result);
         }
     } catch (error) {
         console.error(`Error al inicializar la sesión: ${error.message}`);
