@@ -19,7 +19,7 @@ const initializeClient = async (userId) => {
         }
     } catch (error) {
         console.error('Error validating token for user', userId, error.message);
-        return { isLoggedIn: false, message: 'Error validating token' };
+        return { isLoggedIn: false, message: 'Error validating token', error: error.message };
     }
 
     const client = new Client({
@@ -106,7 +106,7 @@ const initializeClient = async (userId) => {
                 msg.reply(replyMessage);
             } catch (error) {
                 console.error(`Error processing message for user ${userId}:`, error.message);
-                //msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
+                msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
             }
         } else {
             console.log('El mensaje no comienza con !gpt:, validando palabras clave del usuario.');
@@ -126,18 +126,18 @@ const initializeClient = async (userId) => {
                 }
             } catch (error) {
                 console.error(`Error validating keywords for user ${userId}:`, error.message);
-                //msg.reply('Lo siento, hubo un error al validar tu mensaje.');
+                msg.reply('Lo siento, hubo un error al validar tu mensaje.');
             }
         }
     });
 
-    client.initialize().catch((error) => {
+    try {
+        await client.initialize();
+        return { isLoggedIn: false, message: 'Client initialized' };
+    } catch (error) {
         console.error(`Initialization error for user ${userId}:`, error);
-        // Aquí se puede agregar más detalle del error
-        console.error('Error details:', error.message, error.stack);
-    });
-
-    return { isLoggedIn: false, message: 'Client initialized' };
+        return { isLoggedIn: false, message: 'Client initialization failed', error: error.message };
+    }
 };
 
 const generateQR = async (req, res) => {
