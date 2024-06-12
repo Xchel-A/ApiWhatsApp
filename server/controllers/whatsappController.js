@@ -5,134 +5,139 @@ const axios = require('axios');
 const clients = {};
 
 const initializeClient = async (userId) => {
+    if (clients[userId]) {
+        console.log(`Client for user ${userId} is already initialized.`);
+        return { isLoggedIn: true, message: 'Client already initialized' };
+    }
+
     try {
         // Validar token enviando userId
         const validationResponse = await axios.post('https://chatmyway.com/api/validate/token', { token: userId });
         if (!validationResponse.data.valid) {
             console.error('Invalid token for user', userId);
-            return;
+            return { isLoggedIn: false, message: 'Invalid token' };
         }
     } catch (error) {
         console.error('Error validating token for user', userId, error.message);
-        return;
+        return { isLoggedIn: false, message: 'Error validating token' };
     }
 
-    if (!clients[userId]) {
-        const client = new Client({
-            authStrategy: new LocalAuth({ clientId: userId }),
-            puppeteer: {
-                headless: true,
-                args: ['--no-sandbox', '--disable-gpu'],
-            },
-            webVersionCache: { type: 'remote', remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html' }
-        });
+    const client = new Client({
+        authStrategy: new LocalAuth({ clientId: userId }),
+        puppeteer: {
+            headless: true,
+            args: ['--no-sandbox', '--disable-gpu'],
+        },
+        webVersionCache: { type: 'remote', remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html' }
+    });
 
-        clients[userId] = {
-            client,
-            qrCodeData: '',
-            qrAttempts: 0, // Contador de intentos de generación de QR
-            isLoggedIn: false
-        };
+    clients[userId] = {
+        client,
+        qrCodeData: '',
+        qrAttempts: 0, // Contador de intentos de generación de QR
+        isLoggedIn: false
+    };
 
-        client.on('qr', (qr) => {
-            console.log(`QR RECEIVED for user ${userId}`, qr);
-            clients[userId].qrCodeData = qr;
-            clients[userId].qrAttempts += 1;
+    client.on('qr', (qr) => {
+        console.log(`QR RECEIVED for user ${userId}`, qr);
+        clients[userId].qrCodeData = qr;
+        clients[userId].qrAttempts += 1;
 
-            if (clients[userId].qrAttempts >= 5) {
-                console.log(`Maximum QR attempts reached for user ${userId}, closing client.`);
-                client.destroy();
-                delete clients[userId];
+        if (clients[userId].qrAttempts >= 5) {
+            console.log(`Maximum QR attempts reached for user ${userId}, closing client.`);
+            client.destroy();
+            delete clients[userId];
+        }
+    });
+
+    client.on('ready', () => {
+        console.log(`Client for user ${userId} is ready!`);
+        clients[userId].isLoggedIn = true;
+        clients[userId].qrCodeData = '';
+        clients[userId].qrAttempts = 0; // Reiniciar contador al iniciar sesión
+    });
+
+    client.on('authenticated', () => {
+        console.log(`Client for user ${userId} is authenticated!`);
+    });
+
+    client.on('auth_failure', (msg) => {
+        console.error(`Authentication failure for user ${userId}`, msg);
+        clients[userId].isLoggedIn = false;
+    });
+
+    client.on('disconnected', (reason) => {
+        console.log(`Client for user ${userId} was logged out:`, reason);
+        clients[userId].isLoggedIn = false;
+        clients[userId].qrCodeData = '';
+        client.destroy();  // Ensure client instance is destroyed
+        delete clients[userId];  // Remove client from the clients object
+    });
+
+    client.on('message', async (msg) => {
+        // Validar si el mensaje proviene de un grupo o si contiene medios
+        console.log(msg.body);
+
+        if (msg.id.remote.endsWith('@g.us') || msg.hasMedia) {
+            console.log('El mensaje es de un grupo o de media');
+            return;  // No responder a mensajes de grupo ni a mensajes con medios
+        }
+
+        const userId = client.options.authStrategy.clientId;
+
+        // Verificar si el mensaje comienza con !gpt:
+        if (msg.body && msg.body.startsWith('!gpt:')) {
+            console.log('El mensaje tiene contenido y comienza con !gpt:');
+
+            // Extraer el contenido después de !gpt:
+            const userMessage = msg.body.slice(5).trim();
+
+            try {
+                // Inicializar sesión de ChatGPT con un timeout de 30 segundos
+                const responseInit = await axios.post('https://dendenmushi.space/api/chatgpt/init', { token: userId }, { timeout: 200000 });
+                console.log(responseInit);
+
+                // Enviar el mensaje recibido por el cliente a ChatGPT con un timeout de 30 segundos
+                const chatResponse = await axios.post('https://dendenmushi.space/api/chatgpt/chat', { token: userId, message: userMessage }, { timeout: 300000 });
+                const replyMessage = chatResponse.data.response;
+                console.log(chatResponse);
+
+                // Responder al cliente con el mensaje recibido de ChatGPT
+                msg.reply(replyMessage);
+            } catch (error) {
+                console.error(`Error processing message for user ${userId}:`, error.message);
+                //msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
             }
-        });
+        } else {
+            console.log('El mensaje no comienza con !gpt:, validando palabras clave del usuario.');
 
-        client.on('ready', () => {
-            console.log(`Client for user ${userId} is ready!`);
-            clients[userId].isLoggedIn = true;
-            clients[userId].qrCodeData = '';
-            clients[userId].qrAttempts = 0; // Reiniciar contador al iniciar sesión
-        });
+            // Extraer el contenido del mensaje completo
+            const userMessage = msg.body.trim();
 
-        client.on('authenticated', () => {
-            console.log(`Client for user ${userId} is authenticated!`);
-        });
+            try {
+                // Validar palabras clave del cliente
+                const validationResponse = await axios.post('https://chatmyway.com/api/validate/keywords', { token: userId, message: userMessage }, { timeout: 30000 });
 
-        client.on('auth_failure', (msg) => {
-            console.error(`Authentication failure for user ${userId}`, msg);
-            clients[userId].isLoggedIn = false;
-        });
-
-        client.on('disconnected', (reason) => {
-            console.log(`Client for user ${userId} was logged out:`, reason);
-            clients[userId].isLoggedIn = false;
-            clients[userId].qrCodeData = '';
-            client.destroy();  // Ensure client instance is destroyed
-            delete clients[userId];  // Remove client from the clients object
-        });
-
-        client.on('message', async (msg) => {
-            // Validar si el mensaje proviene de un grupo o si contiene medios
-            console.log(msg.body);
-
-            if (msg.id.remote.endsWith('@g.us') || msg.hasMedia) {
-                console.log('El mensaje es de un grupo o de media');
-                return;  // No responder a mensajes de grupo ni a mensajes con medios
-            }
-
-            const userId = client.options.authStrategy.clientId;
-
-            // Verificar si el mensaje comienza con !gpt:
-            if (msg.body && msg.body.startsWith('!gpt:')) {
-                console.log('El mensaje tiene contenido y comienza con !gpt:');
-
-                // Extraer el contenido después de !gpt:
-                const userMessage = msg.body.slice(5).trim();
-
-                try {
-                    // Inicializar sesión de ChatGPT con un timeout de 30 segundos
-                    const responseInit = await axios.post('https://dendenmushi.space/api/chatgpt/init', { token: userId }, { timeout: 200000 });
-                    console.log(responseInit);
-
-                    // Enviar el mensaje recibido por el cliente a ChatGPT con un timeout de 30 segundos
-                    const chatResponse = await axios.post('https://dendenmushi.space/api/chatgpt/chat', { token: userId, message: userMessage }, { timeout: 300000 });
-                    const replyMessage = chatResponse.data.response;
-                    console.log(chatResponse);
-
-                    // Responder al cliente con el mensaje recibido de ChatGPT
-                    msg.reply(replyMessage);
-                } catch (error) {
-                    console.error(`Error processing message for user ${userId}:`, error.message);
-                    //msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
+                if (validationResponse.data.valid) {
+                    // Responder al cliente con la respuesta encontrada
+                    msg.reply(validationResponse.data.response);
+                } else {
+                    console.log('No se encontraron palabras clave coincidentes.');
                 }
-            } else {
-                console.log('El mensaje no comienza con !gpt:, validando palabras clave del usuario.');
-
-                // Extraer el contenido del mensaje completo
-                const userMessage = msg.body.trim();
-
-                try {
-                    // Validar palabras clave del cliente
-                    const validationResponse = await axios.post('https://chatmyway.com/api/validate/keywords', { token: userId, message: userMessage }, { timeout: 30000 });
-
-                    if (validationResponse.data.valid) {
-                        // Responder al cliente con la respuesta encontrada
-                        msg.reply(validationResponse.data.response);
-                    } else {
-                        console.log('No se encontraron palabras clave coincidentes.');
-                    }
-                } catch (error) {
-                    console.error(`Error validating keywords for user ${userId}:`, error.message);
-                    //msg.reply('Lo siento, hubo un error al validar tu mensaje.');
-                }
+            } catch (error) {
+                console.error(`Error validating keywords for user ${userId}:`, error.message);
+                //msg.reply('Lo siento, hubo un error al validar tu mensaje.');
             }
-        });
+        }
+    });
 
-        client.initialize().catch((error) => {
-            console.error(`Initialization error for user ${userId}:`, error);
-            // Aquí se puede agregar más detalle del error
-            console.error('Error details:', error.message, error.stack);
-        });
-    }
+    client.initialize().catch((error) => {
+        console.error(`Initialization error for user ${userId}:`, error);
+        // Aquí se puede agregar más detalle del error
+        console.error('Error details:', error.message, error.stack);
+    });
+
+    return { isLoggedIn: false, message: 'Client initialized' };
 };
 
 const generateQR = async (req, res) => {
@@ -214,7 +219,7 @@ const getChatById = async (req, res) => {
     }
     try {
         const chat = await clientInfo.client.getChatById(chatId);
-        res.status(200).json(chat);
+        res.status{ 200 }.json(chat);
     } catch (error) {
         console.error('Error getting chat by ID:', error);
         res.status(500).json({ message: 'Error getting chat by ID', error });
