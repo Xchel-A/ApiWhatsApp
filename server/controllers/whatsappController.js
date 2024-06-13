@@ -143,16 +143,25 @@ const initializeClient = async (userId) => {
 const generateQR = async (req, res) => {
     const { userId } = req.body;
     const clientInfo = clients[userId];
-    if (clientInfo && clientInfo.qrCodeData) {
-        try {
-            const qrCodeUrl = await qrcode.toDataURL(clientInfo.qrCodeData);
-            res.status(200).json({ qrCode: qrCodeUrl });
-        } catch (error) {
-            console.error('Error generating QR code:', error);
-            res.status(500).json({ message: 'Error generating QR code', error: error.message });
+
+    if (clientInfo) {
+        if (clientInfo.qrAttempts >= 5) {
+            return res.status(401).json({ message: 'Maximum QR attempts reached. Please reinitialize the client.' });
+        }
+
+        if (clientInfo.qrCodeData) {
+            try {
+                const qrCodeUrl = await qrcode.toDataURL(clientInfo.qrCodeData);
+                res.status(200).json({ qrCode: qrCodeUrl });
+            } catch (error) {
+                console.error('Error generating QR code:', error);
+                res.status(500).json({ message: 'Error generating QR code', error: error.message });
+            }
+        } else {
+            res.status(401).json({ message: 'QR code not available' });
         }
     } else {
-        res.status(401).json({ message: 'QR code not available' });
+        res.status(400).json({ message: 'Client not initialized' });
     }
 };
 
