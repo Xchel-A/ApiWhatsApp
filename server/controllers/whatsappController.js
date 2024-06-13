@@ -149,7 +149,7 @@ const generateQR = async (req, res) => {
             res.status(200).json({ qrCode: qrCodeUrl });
         } catch (error) {
             console.error('Error generating QR code:', error);
-            res.status(500).json({ message: 'Error generating QR code', error: error.message });
+            res.status(401).json({ message: 'Error generating QR code', error: error.message });
         }
     } else {
         res.status(500).json({ message: 'QR code not available' });
