@@ -22,7 +22,7 @@ router.post('/initialize', async (req, res) => {
         } else if (result.message === 'Invalid token') {
             return res.status(401).json(result);
         } else if (result.message === 'Error validating token') {
-            return res.status(500).json(result);
+            return res.status(401).json(result);
         } else if (result.message === 'Client initialization failed') {
             return res.status(500).json(result);
         } else {
