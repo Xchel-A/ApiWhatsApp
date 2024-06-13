@@ -161,7 +161,7 @@ const generateQR = async (req, res) => {
             res.status(401).json({ message: 'QR code not available' });
         }
     } else {
-        res.status(400).json({ message: 'Client not initialized' });
+        res.status(401).json({ message: 'Client not initialized' });
     }
 };
 
