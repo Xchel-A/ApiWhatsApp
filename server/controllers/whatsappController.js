@@ -316,9 +316,37 @@ const logout = async (req, res) => {
     }
 };
 
+
+// Función para obtener el HTML del cliente ya autenticado
+const getClientHTML = async (req, res) => {
+    const { userId } = req.body;
+    const clientInfo = clients[userId];
+    if (!clientInfo || !clientInfo.isLoggedIn) {
+        return res.status(400).json({ message: 'WhatsApp client not logged in' });
+    }
+
+    try {
+        const browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            userDataDir: `./user_data/${userId}` // Usar la misma carpeta de datos del cliente inicializado
+        });
+        const page = await browser.newPage();
+        await page.goto('https://web.whatsapp.com'); // Aquí vamos a la URL de WhatsApp Web
+        await page.waitForSelector('._1N4rE'); // Esperar a que cargue la interfaz de usuario
+
+        const html = await page.content();
+        await browser.close();
+        res.status(200).send(html);
+    } catch (error) {
+        console.error('Error getting client HTML:', error);
+        res.status(500).json({ message: 'Error getting client HTML', error: error.message });
+    }
+};
+
 module.exports = { 
     initializeClient, generateQR, sendMessage, checkSession, 
     getChats, getContacts, getChatById, 
     getChatMessages, sendMedia, getProfilePicUrl, 
-    getState, logout 
+    getState, logout , getClientHTML
 };
