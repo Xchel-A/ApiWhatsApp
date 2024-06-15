@@ -8,13 +8,13 @@ const {
 const router = express.Router();
 
 router.post('/initialize', async (req, res) => {
-    const { userId } = req.body;
-    if (!userId) {
-        return res.status(400).json({ error: 'userId no proporcionado' });
+    const { token } = req.body;
+    if (!token) {
+        return res.status(400).json({ error: 'token no proporcionado' });
     }
 
     try {
-        const result = await initializeClient(userId);
+        const result = await initializeClient(token);
 
         // Manejar las respuestas según el resultado de la función initializeClient
         if (result.isLoggedIn) {
@@ -34,7 +34,6 @@ router.post('/initialize', async (req, res) => {
     }
 });
 
-
 const SHUTDOWN_TOKEN = 'e97a45416001a775518dfa13125cd33a';
 
 router.post('/shutdown/all', async (req, res) => {
@@ -52,8 +51,6 @@ router.post('/shutdown/all', async (req, res) => {
     }
 });
 
-
-
 router.post('/generate-qr', generateQR);
 router.post('/send-message', sendMessage);
 router.post('/check-session', checkSession);
@@ -65,6 +62,5 @@ router.post('/send-media', sendMedia);
 router.post('/get-profile-pic-url', getProfilePicUrl);
 router.post('/get-state', getState);
 router.post('/logout', logout);
-
 
 module.exports = router;
