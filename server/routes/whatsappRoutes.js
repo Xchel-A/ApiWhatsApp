@@ -3,7 +3,7 @@ const {
     initializeClient, generateQR, sendMessage, checkSession,
     getChats, getContacts, getChatById,
     getChatMessages, sendMedia, getProfilePicUrl,
-    getState, logout, getClientHTML
+    getState, logout
 } = require('../controllers/whatsappController');
 const router = express.Router();
 
@@ -45,6 +45,6 @@ router.post('/send-media', sendMedia);
 router.post('/get-profile-pic-url', getProfilePicUrl);
 router.post('/get-state', getState);
 router.post('/logout', logout);
-router.post('/get/cliente/html', getClientHTML);
+
 
 module.exports = router;
