@@ -37,7 +37,7 @@ router.post('/initialize', async (req, res) => {
 
 const SHUTDOWN_TOKEN = 'e97a45416001a775518dfa13125cd33a';
 
-app.post('/shutdown-all', async (req, res) => {
+router.post('/shutdown/all', async (req, res) => {
     const { token } = req.body;
 
     if (token !== SHUTDOWN_TOKEN) {
