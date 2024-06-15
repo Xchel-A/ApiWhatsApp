@@ -6,26 +6,26 @@ const path = require('path');
 
 const clients = {};
 
-const initializeClient = async (userId) => {
-    if (clients[userId]) {
-        console.log(`Client for user ${userId} is already initialized.`);
+const initializeClient = async (token) => {
+    if (clients[token]) {
+        console.log(`Client for token ${token} is already initialized.`);
         return { isLoggedIn: true, message: 'Client already initialized' };
     }
 
     try {
-        // Validar token enviando userId
-        const validationResponse = await axios.post('https://chatmyway.com/api/validate/token', { token: userId });
+        // Validar token enviando token
+        const validationResponse = await axios.post('https://chatmyway.com/api/validate/token', { token });
         if (!validationResponse.data.valid) {
-            console.error('Invalid token for user', userId);
+            console.error('Invalid token', token);
             return { isLoggedIn: false, message: 'Invalid token' };
         }
     } catch (error) {
-        console.error('Error validating token for user', userId, error.message);
+        console.error('Error validating token', token, error.message);
         return { isLoggedIn: false, message: 'Error validating token' };
     }
 
     const client = new Client({
-        authStrategy: new LocalAuth({ clientId: userId }),
+        authStrategy: new LocalAuth({ clientId: token }),
         puppeteer: {
             headless: true,
             args: ['--no-sandbox', '--disable-gpu'],
@@ -33,7 +33,7 @@ const initializeClient = async (userId) => {
         webVersionCache: { type: 'remote', remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html' }
     });
 
-    clients[userId] = {
+    clients[token] = {
         client,
         qrCodeData: '',
         qrAttempts: 0, // Contador de intentos de generación de QR
@@ -41,39 +41,39 @@ const initializeClient = async (userId) => {
     };
 
     client.on('qr', (qr) => {
-        console.log(`QR RECEIVED for user ${userId}`, qr);
-        clients[userId].qrCodeData = qr;
-        clients[userId].qrAttempts += 1;
+        console.log(`QR RECEIVED for token ${token}`, qr);
+        clients[token].qrCodeData = qr;
+        clients[token].qrAttempts += 1;
 
-        if (clients[userId].qrAttempts >= 5) {
-            console.log(`Maximum QR attempts reached for user ${userId}, closing client.`);
+        if (clients[token].qrAttempts >= 5) {
+            console.log(`Maximum QR attempts reached for token ${token}, closing client.`);
             client.destroy();
-            delete clients[userId];
+            delete clients[token];
         }
     });
 
     client.on('ready', () => {
-        console.log(`Client for user ${userId} is ready!`);
-        clients[userId].isLoggedIn = true;
-        clients[userId].qrCodeData = '';
-        clients[userId].qrAttempts = 0; // Reiniciar contador al iniciar sesión
+        console.log(`Client for token ${token} is ready!`);
+        clients[token].isLoggedIn = true;
+        clients[token].qrCodeData = '';
+        clients[token].qrAttempts = 0; // Reiniciar contador al iniciar sesión
     });
 
     client.on('authenticated', () => {
-        console.log(`Client for user ${userId} is authenticated!`);
+        console.log(`Client for token ${token} is authenticated!`);
     });
 
     client.on('auth_failure', (msg) => {
-        console.error(`Authentication failure for user ${userId}`, msg);
-        clients[userId].isLoggedIn = false;
+        console.error(`Authentication failure for token ${token}`, msg);
+        clients[token].isLoggedIn = false;
     });
 
     client.on('disconnected', (reason) => {
-        console.log(`Client for user ${userId} was logged out:`, reason);
-        clients[userId].isLoggedIn = false;
-        clients[userId].qrCodeData = '';
+        console.log(`Client for token ${token} was logged out:`, reason);
+        clients[token].isLoggedIn = false;
+        clients[token].qrCodeData = '';
         client.destroy();  // Ensure client instance is destroyed
-        delete clients[userId];  // Remove client from the clients object
+        delete clients[token];  // Remove client from the clients object
     });
 
     client.on('message', async (msg) => {
@@ -85,7 +85,7 @@ const initializeClient = async (userId) => {
             return;  // No responder a mensajes de grupo ni a mensajes con medios
         }
 
-        const userId = client.options.authStrategy.clientId;
+        const token = client.options.authStrategy.clientId;
 
         // Verificar si el mensaje comienza con !gpt:
         if (msg.body && msg.body.startsWith('!gpt:')) {
@@ -96,18 +96,18 @@ const initializeClient = async (userId) => {
 
             try {
                 // Inicializar sesión de ChatGPT con un timeout de 30 segundos
-                const responseInit = await axios.post('https://dendenmushi.space/api/chatgpt/init', { token: userId }, { timeout: 200000 });
+                const responseInit = await axios.post('https://dendenmushi.space/api/chatgpt/init', { token }, { timeout: 200000 });
                 console.log(responseInit);
 
                 // Enviar el mensaje recibido por el cliente a ChatGPT con un timeout de 30 segundos
-                const chatResponse = await axios.post('https://dendenmushi.space/api/chatgpt/chat', { token: userId, message: userMessage }, { timeout: 300000 });
+                const chatResponse = await axios.post('https://dendenmushi.space/api/chatgpt/chat', { token, message: userMessage }, { timeout: 300000 });
                 const replyMessage = chatResponse.data.response;
                 console.log(chatResponse);
 
                 // Responder al cliente con el mensaje recibido de ChatGPT
                 msg.reply(replyMessage);
             } catch (error) {
-                console.error(`Error processing message for user ${userId}:`, error.message);
+                console.error(`Error processing message for token ${token}:`, error.message);
                 //msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
             }
         } else {
@@ -118,7 +118,7 @@ const initializeClient = async (userId) => {
 
             try {
                 // Validar palabras clave del cliente
-                const validationResponse = await axios.post('https://chatmyway.com/api/validate/keywords', { token: userId, message: userMessage }, { timeout: 30000 });
+                const validationResponse = await axios.post('https://chatmyway.com/api/validate/keywords', { token, message: userMessage }, { timeout: 30000 });
 
                 if (validationResponse.data.valid) {
                     // Responder al cliente con la respuesta encontrada
@@ -127,14 +127,14 @@ const initializeClient = async (userId) => {
                     console.log('No se encontraron palabras clave coincidentes.');
                 }
             } catch (error) {
-                console.error(`Error validating keywords for user ${userId}:`, error.message);
+                console.error(`Error validating keywords for token ${token}:`, error.message);
                 //msg.reply('Lo siento, hubo un error al validar tu mensaje.');
             }
         }
     });
 
     client.initialize().catch((error) => {
-        console.error(`Initialization error for user ${userId}:`, error);
+        console.error(`Initialization error for token ${token}:`, error);
         // Aquí se puede agregar más detalle del error
         console.error('Error details:', error.message, error.stack);
     });
@@ -143,8 +143,8 @@ const initializeClient = async (userId) => {
 };
 
 const generateQR = async (req, res) => {
-    const { userId } = req.body;
-    const clientInfo = clients[userId];
+    const { token } = req.body;
+    const clientInfo = clients[token];
 
     if (clientInfo) {
         if (clientInfo.qrAttempts >= 5) {
@@ -168,8 +168,8 @@ const generateQR = async (req, res) => {
 };
 
 const sendMessage = async (req, res) => {
-    const { userId, numero, mensaje } = req.body;
-    const clientInfo = clients[userId];
+    const { token, numero, mensaje } = req.body;
+    const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
@@ -183,8 +183,8 @@ const sendMessage = async (req, res) => {
 };
 
 const checkSession = (req, res) => {
-    const { userId } = req.body;
-    const clientInfo = clients[userId];
+    const { token } = req.body;
+    const clientInfo = clients[token];
     if (clientInfo) {
         res.status(200).json({ isLoggedIn: clientInfo.isLoggedIn });
     } else {
@@ -193,8 +193,8 @@ const checkSession = (req, res) => {
 };
 
 const getChats = async (req, res) => {
-    const { userId } = req.body;
-    const clientInfo = clients[userId];
+    const { token } = req.body;
+    const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
@@ -208,8 +208,8 @@ const getChats = async (req, res) => {
 };
 
 const getContacts = async (req, res) => {
-    const { userId } = req.body;
-    const clientInfo = clients[userId];
+    const { token } = req.body;
+    const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
@@ -223,8 +223,8 @@ const getContacts = async (req, res) => {
 };
 
 const getChatById = async (req, res) => {
-    const { userId, chatId } = req.body;
-    const clientInfo = clients[userId];
+    const { token, chatId } = req.body;
+    const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
@@ -238,8 +238,8 @@ const getChatById = async (req, res) => {
 };
 
 const getChatMessages = async (req, res) => {
-    const { userId, chatId } = req.body;
-    const clientInfo = clients[userId];
+    const { token, chatId } = req.body;
+    const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
@@ -254,8 +254,8 @@ const getChatMessages = async (req, res) => {
 };
 
 const sendMedia = async (req, res) => {
-    const { userId, numero, mediaUrl, caption } = req.body;
-    const clientInfo = clients[userId];
+    const { token, numero, mediaUrl, caption } = req.body;
+    const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
@@ -270,8 +270,8 @@ const sendMedia = async (req, res) => {
 };
 
 const getProfilePicUrl = async (req, res) => {
-    const { userId, numero } = req.body;
-    const clientInfo = clients[userId];
+    const { token, numero } = req.body;
+    const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
@@ -285,8 +285,8 @@ const getProfilePicUrl = async (req, res) => {
 };
 
 const getState = async (req, res) => {
-    const { userId } = req.body;
-    const clientInfo = clients[userId];
+    const { token } = req.body;
+    const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
@@ -300,41 +300,40 @@ const getState = async (req, res) => {
 };
 
 const logout = async (req, res) => {
-    const { userId } = req.body;
-    const clientInfo = clients[userId];
+    const { token } = req.body;
+    const clientInfo = clients[token];
     if (clientInfo) {
         try {
             await clientInfo.client.logout();
             clientInfo.isLoggedIn = false;
             clientInfo.qrCodeData = '';
-            delete clients[userId];
+            delete clients[token];
             res.status(200).json({ message: 'Client logged out successfully.' });
         } catch (error) {
             console.error('Error logging out:', error);
-            res.status(500).json({ message: 'Error logging out', error });
+            res.status  (500).json({ message: 'Error logging out', error });
         }
     } else {
         res.status(400).json({ message: 'Client not initialized' });
     }
 };
 
-
 const shutdownAllClients = async () => {
-    for (const userId in clients) {
-        if (clients.hasOwnProperty(userId)) {
+    for (const token in clients) {
+        if (clients.hasOwnProperty(token)) {
             try {
-                await clients[userId].client.destroy();
-                console.log(`Client for user ${userId} has been destroyed.`);
+                await clients[token].client.destroy();
+                console.log(`Client for token ${token} has been destroyed.`);
             } catch (error) {
-                console.error(`Error destroying client for user ${userId}:`, error);
+                console.error(`Error destroying client for token ${token}:`, error);
             }
         }
     }
 
     // Eliminar todos los clientes del objeto
-    for (const userId in clients) {
-        if (clients.hasOwnProperty(userId)) {
-            delete clients[userId];
+    for (const token in clients) {
+        if (clients.hasOwnProperty(token)) {
+            delete clients[token];
         }
     }
 
@@ -373,5 +372,5 @@ module.exports = {
     initializeClient, generateQR, sendMessage, checkSession, 
     getChats, getContacts, getChatById, 
     getChatMessages, sendMedia, getProfilePicUrl, 
-    getState, logout , shutdownAllClients
+    getState, logout, shutdownAllClients
 };
