@@ -342,23 +342,31 @@ const shutdownAllClients = async () => {
     const authPath = path.join(__dirname, '.wwebjs_auth'); // Ruta por defecto
     const cachePath = path.join(__dirname, '.wwebjs_cache'); // Ruta de caché si se usa
 
-    fs.rmdir(authPath, { recursive: true }, (err) => {
-        if (err) {
-            console.error('Error deleting auth folder:', err);
-        } else {
-            console.log('Auth folder has been deleted.');
-        }
-    });
+    if (fs.existsSync(authPath)) {
+        fs.rm(authPath, { recursive: true }, (err) => {
+            if (err) {
+                console.error('Error deleting auth folder:', err);
+            } else {
+                console.log('Auth folder has been deleted.');
+            }
+        });
+    } else {
+        console.log('Auth folder does not exist.');
+    }
 
-    fs.rmdir(cachePath, { recursive: true }, (err) => {
-        if (err) {
-            console.error('Error deleting cache folder:', err);
-        } else {
-            console.log('Cache folder has been deleted.');
-        }
-    });
+    if (fs.existsSync(cachePath)) {
+        fs.rm(cachePath, { recursive: true }, (err) => {
+            if (err) {
+                console.error('Error deleting cache folder:', err);
+            } else {
+                console.log('Cache folder has been deleted.');
+            }
+        });
+    } else {
+        console.log('Cache folder does not exist.');
+    }
 
-    console.log('All clients have been shut down and all auth and cache folders have been deleted.');
+    console.log('All clients have been shut down and checked for auth and cache folders deletion.');
 };
 
 module.exports = { 
