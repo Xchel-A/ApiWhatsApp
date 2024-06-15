@@ -1,7 +1,8 @@
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const axios = require('axios');
-
+const fs = require('fs');
+const path = require('path');
 
 const clients = {};
 
@@ -329,13 +330,35 @@ const shutdownAllClients = async () => {
             }
         }
     }
+
     // Eliminar todos los clientes del objeto
     for (const userId in clients) {
         if (clients.hasOwnProperty(userId)) {
             delete clients[userId];
         }
     }
-    console.log('All clients have been shut down and removed.');
+
+    // Eliminar las carpetas de datos de autenticación y caché
+    const authPath = path.join(__dirname, '.wwebjs_auth'); // Ruta por defecto
+    const cachePath = path.join(__dirname, '.wwebjs_cache'); // Ruta de caché si se usa
+
+    fs.rmdir(authPath, { recursive: true }, (err) => {
+        if (err) {
+            console.error('Error deleting auth folder:', err);
+        } else {
+            console.log('Auth folder has been deleted.');
+        }
+    });
+
+    fs.rmdir(cachePath, { recursive: true }, (err) => {
+        if (err) {
+            console.error('Error deleting cache folder:', err);
+        } else {
+            console.log('Cache folder has been deleted.');
+        }
+    });
+
+    console.log('All clients have been shut down and all auth and cache folders have been deleted.');
 };
 
 module.exports = { 

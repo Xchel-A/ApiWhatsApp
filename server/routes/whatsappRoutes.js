@@ -53,6 +53,7 @@ router.post('/shutdown/all', async (req, res) => {
 });
 
 
+
 router.post('/generate-qr', generateQR);
 router.post('/send-message', sendMessage);
 router.post('/check-session', checkSession);
