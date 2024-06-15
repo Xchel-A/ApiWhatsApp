@@ -1,7 +1,7 @@
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const axios = require('axios');
-const puppeteer = require('puppeteer');
+
 
 const clients = {};
 
@@ -318,12 +318,29 @@ const logout = async (req, res) => {
 };
 
 
-// Función para obtener el HTML del cliente ya autenticado
-
+const shutdownAllClients = async () => {
+    for (const userId in clients) {
+        if (clients.hasOwnProperty(userId)) {
+            try {
+                await clients[userId].client.destroy();
+                console.log(`Client for user ${userId} has been destroyed.`);
+            } catch (error) {
+                console.error(`Error destroying client for user ${userId}:`, error);
+            }
+        }
+    }
+    // Eliminar todos los clientes del objeto
+    for (const userId in clients) {
+        if (clients.hasOwnProperty(userId)) {
+            delete clients[userId];
+        }
+    }
+    console.log('All clients have been shut down and removed.');
+};
 
 module.exports = { 
     initializeClient, generateQR, sendMessage, checkSession, 
     getChats, getContacts, getChatById, 
     getChatMessages, sendMedia, getProfilePicUrl, 
-    getState, logout 
+    getState, logout , shutdownAllClients
 };
