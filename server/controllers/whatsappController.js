@@ -1,6 +1,7 @@
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const axios = require('axios');
+const puppeteer = require('puppeteer');
 
 const clients = {};
 
@@ -343,7 +344,6 @@ const getClientHTML = async (req, res) => {
         res.status(500).json({ message: 'Error getting client HTML', error: error.message });
     }
 };
-
 module.exports = { 
     initializeClient, generateQR, sendMessage, checkSession, 
     getChats, getContacts, getChatById, 
