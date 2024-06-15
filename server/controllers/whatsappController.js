@@ -319,6 +319,7 @@ const logout = async (req, res) => {
 
 
 // Función para obtener el HTML del cliente ya autenticado
+
 const getClientHTML = async (req, res) => {
     const { userId } = req.body;
     const clientInfo = clients[userId];
@@ -333,8 +334,10 @@ const getClientHTML = async (req, res) => {
             userDataDir: `./user_data/${userId}` // Usar la misma carpeta de datos del cliente inicializado
         });
         const page = await browser.newPage();
-        await page.goto('https://web.whatsapp.com'); // Aquí vamos a la URL de WhatsApp Web
-        await page.waitForSelector('._1N4rE'); // Esperar a que cargue la interfaz de usuario
+        await page.goto('https://web.whatsapp.com', { waitUntil: 'networkidle2' });
+
+        // Ajustar el selector y tiempo de espera
+        await page.waitForSelector('._2_1wd', { timeout: 60000 }); // Selector de la interfaz principal de WhatsApp Web
 
         const html = await page.content();
         await browser.close();
@@ -344,6 +347,7 @@ const getClientHTML = async (req, res) => {
         res.status(500).json({ message: 'Error getting client HTML', error: error.message });
     }
 };
+
 module.exports = { 
     initializeClient, generateQR, sendMessage, checkSession, 
     getChats, getContacts, getChatById, 
