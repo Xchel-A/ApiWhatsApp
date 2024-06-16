@@ -36,20 +36,7 @@ router.post('/initialize', async (req, res) => {
 
 const SHUTDOWN_TOKEN = 'e97a45416001a775518dfa13125cd33a';
 
-router.post('/shutdown/all', async (req, res) => {
-    const { token } = req.body;
 
-    if (token !== SHUTDOWN_TOKEN) {
-        return res.status(403).json({ message: 'Forbidden: Invalid token' });
-    }
-
-    try {
-        await shutdownAllClients();
-        res.status(200).json({ message: 'All clients have been shut down successfully.' });
-    } catch (error) {
-        res.status(500).json({ message: 'Error shutting down clients', error });
-    }
-});
 
 router.post('/generate-qr', generateQR);
 router.post('/send-message', sendMessage);

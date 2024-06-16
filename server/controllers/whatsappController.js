@@ -288,7 +288,7 @@ const getState = async (req, res) => {
     const { token } = req.body;
     const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
-        return res.status(400).json({ message: 'WhatsApp client not logged in' });
+        return res.status(401).json({ message: 'WhatsApp client not logged in' });
     }
     try {
         const state = await clientInfo.client.getState();
@@ -318,55 +318,6 @@ const logout = async (req, res) => {
     }
 };
 
-const shutdownAllClients = async () => {
-    for (const token in clients) {
-        if (clients.hasOwnProperty(token)) {
-            try {
-                await clients[token].client.destroy();
-                console.log(`Client for token ${token} has been destroyed.`);
-            } catch (error) {
-                console.error(`Error destroying client for token ${token}:`, error);
-            }
-        }
-    }
-
-    // Eliminar todos los clientes del objeto
-    for (const token in clients) {
-        if (clients.hasOwnProperty(token)) {
-            delete clients[token];
-        }
-    }
-
-    // Eliminar las carpetas de datos de autenticación y caché
-    const authPath = path.join(__dirname, '.wwebjs_auth'); // Ruta por defecto
-    const cachePath = path.join(__dirname, '.wwebjs_cache'); // Ruta de caché si se usa
-
-    if (fs.existsSync(authPath)) {
-        fs.rm(authPath, { recursive: true }, (err) => {
-            if (err) {
-                console.error('Error deleting auth folder:', err);
-            } else {
-                console.log('Auth folder has been deleted.');
-            }
-        });
-    } else {
-        console.log('Auth folder does not exist.');
-    }
-
-    if (fs.existsSync(cachePath)) {
-        fs.rm(cachePath, { recursive: true }, (err) => {
-            if (err) {
-                console.error('Error deleting cache folder:', err);
-            } else {
-                console.log('Cache folder has been deleted.');
-            }
-        });
-    } else {
-        console.log('Cache folder does not exist.');
-    }
-
-    console.log('All clients have been shut down and checked for auth and cache folders deletion.');
-};
 
 module.exports = { 
     initializeClient, generateQR, sendMessage, checkSession, 
