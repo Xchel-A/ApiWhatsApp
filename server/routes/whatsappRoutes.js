@@ -7,36 +7,19 @@ const {
 } = require('../controllers/whatsappController');
 const router = express.Router();
 
-router.post('/initialize', async (req, res) => {
+router.post('/initialize', async (req, res, next) => {
     const { token } = req.body;
     if (!token) {
-        return res.status(400).json({ error: 'token no proporcionado' });
+        return res.status(400).json({ error: 'Token no proporcionado' });
     }
 
     try {
         const result = await initializeClient(token);
-
-        // Manejar las respuestas según el resultado de la función initializeClient
-        if (result.isLoggedIn) {
-            return res.status(200).json(result);
-        } else if (result.message === 'Invalid token') {
-            return res.status(401).json(result);
-        } else if (result.message === 'Error validating token') {
-            return res.status(401).json(result);
-        } else if (result.message === 'Client initialization failed') {
-            return res.status(500).json(result);
-        } else {
-            return res.status(200).json(result);
-        }
+        res.status(result.isLoggedIn ? 200 : result.message.includes('Invalid token') ? 401 : 500).json(result);
     } catch (error) {
-        console.error(`Error al inicializar la sesión: ${error.message}`);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 });
-
-const SHUTDOWN_TOKEN = 'e97a45416001a775518dfa13125cd33a';
-
-
 
 router.post('/generate-qr', generateQR);
 router.post('/send-message', sendMessage);

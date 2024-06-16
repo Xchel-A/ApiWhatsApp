@@ -13,7 +13,6 @@ const initializeClient = async (token) => {
     }
 
     try {
-        // Validar token enviando token
         const validationResponse = await axios.post('https://chatmyway.com/api/validate/token', { token });
         if (!validationResponse.data.valid) {
             console.error('Invalid token', token);
@@ -36,7 +35,7 @@ const initializeClient = async (token) => {
     clients[token] = {
         client,
         qrCodeData: '',
-        qrAttempts: 0, // Contador de intentos de generación de QR
+        qrAttempts: 0,
         isLoggedIn: false
     };
 
@@ -56,7 +55,7 @@ const initializeClient = async (token) => {
         console.log(`Client for token ${token} is ready!`);
         clients[token].isLoggedIn = true;
         clients[token].qrCodeData = '';
-        clients[token].qrAttempts = 0; // Reiniciar contador al iniciar sesión
+        clients[token].qrAttempts = 0;
     });
 
     client.on('authenticated', () => {
@@ -72,77 +71,65 @@ const initializeClient = async (token) => {
         console.log(`Client for token ${token} was logged out:`, reason);
         clients[token].isLoggedIn = false;
         clients[token].qrCodeData = '';
-        client.destroy();  // Ensure client instance is destroyed
-        delete clients[token];  // Remove client from the clients object
+        client.destroy();
+        delete clients[token];
     });
 
     client.on('message', async (msg) => {
-        // Validar si el mensaje proviene de un grupo o si contiene medios
         console.log(msg.body);
 
         if (msg.id.remote.endsWith('@g.us') || msg.hasMedia) {
             console.log('El mensaje es de un grupo o de media');
-            return;  // No responder a mensajes de grupo ni a mensajes con medios
+            return;
         }
 
         const token = client.options.authStrategy.clientId;
 
-        // Verificar si el mensaje comienza con !gpt:
         if (msg.body && msg.body.startsWith('!gpt:')) {
             console.log('El mensaje tiene contenido y comienza con !gpt:');
 
-            // Extraer el contenido después de !gpt:
             const userMessage = msg.body.slice(5).trim();
 
             try {
-                // Inicializar sesión de ChatGPT con un timeout de 30 segundos
                 const responseInit = await axios.post('https://dendenmushi.space/api/chatgpt/init', { token }, { timeout: 200000 });
                 console.log(responseInit);
 
-                // Enviar el mensaje recibido por el cliente a ChatGPT con un timeout de 30 segundos
                 const chatResponse = await axios.post('https://dendenmushi.space/api/chatgpt/chat', { token, message: userMessage }, { timeout: 300000 });
                 const replyMessage = chatResponse.data.response;
                 console.log(chatResponse);
 
-                // Responder al cliente con el mensaje recibido de ChatGPT
                 msg.reply(replyMessage);
             } catch (error) {
                 console.error(`Error processing message for token ${token}:`, error.message);
-                //msg.reply('Lo siento, hubo un error al procesar tu mensaje.');
             }
         } else {
             console.log('El mensaje no comienza con !gpt:, validando palabras clave del usuario.');
 
-            // Extraer el contenido del mensaje completo
             const userMessage = msg.body.trim();
 
             try {
-                // Validar palabras clave del cliente
                 const validationResponse = await axios.post('https://chatmyway.com/api/validate/keywords', { token, message: userMessage }, { timeout: 30000 });
 
                 if (validationResponse.data.valid) {
-                    // Responder al cliente con la respuesta encontrada
                     msg.reply(validationResponse.data.response);
                 } else {
                     console.log('No se encontraron palabras clave coincidentes.');
                 }
             } catch (error) {
                 console.error(`Error validating keywords for token ${token}:`, error.message);
-                //msg.reply('Lo siento, hubo un error al validar tu mensaje.');
             }
         }
     });
 
     client.initialize().catch((error) => {
         console.error(`Initialization error for token ${token}:`, error);
-        // Aquí se puede agregar más detalle del error
         console.error('Error details:', error.message, error.stack);
     });
 
     return { isLoggedIn: false, message: 'Client initialized' };
 };
 
-const generateQR = async (req, res) => {
+const generateQR = async (req, res, next) => {
     const { token } = req.body;
     const clientInfo = clients[token];
 
@@ -157,7 +144,7 @@ const generateQR = async (req, res) => {
                 res.status(200).json({ qrCode: qrCodeUrl });
             } catch (error) {
                 console.error('Error generating QR code:', error);
-                res.status(500).json({ message: 'Error generating QR code', error: error.message });
+                next(error);
             }
         } else {
             res.status(404).json({ message: 'QR code not available' });
@@ -167,7 +154,7 @@ const generateQR = async (req, res) => {
     }
 };
 
-const sendMessage = async (req, res) => {
+const sendMessage = async (req, res, next) => {
     const { token, numero, mensaje } = req.body;
     const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
@@ -178,11 +165,11 @@ const sendMessage = async (req, res) => {
         res.status(200).json({ message: 'Mensaje enviado exitosamente.' });
     } catch (error) {
         console.error('Error sending message:', error);
-        res.status(500).json({ message: 'Error al enviar el mensaje', error });
+        next(error);
     }
 };
 
-const checkSession = (req, res) => {
+const checkSession = (req, res, next) => {
     const { token } = req.body;
     const clientInfo = clients[token];
     if (clientInfo) {
@@ -192,7 +179,7 @@ const checkSession = (req, res) => {
     }
 };
 
-const getChats = async (req, res) => {
+const getChats = async (req, res, next) => {
     const { token } = req.body;
     const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
@@ -203,11 +190,11 @@ const getChats = async (req, res) => {
         res.status(200).json(chats);
     } catch (error) {
         console.error('Error getting chats:', error);
-        res.status(500).json({ message: 'Error getting chats', error });
+        next(error);
     }
 };
 
-const getContacts = async (req, res) => {
+const getContacts = async (req, res, next) => {
     const { token } = req.body;
     const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
@@ -218,11 +205,11 @@ const getContacts = async (req, res) => {
         res.status(200).json(contacts);
     } catch (error) {
         console.error('Error getting contacts:', error);
-        res.status(500).json({ message: 'Error getting contacts', error });
+        next(error);
     }
 };
 
-const getChatById = async (req, res) => {
+const getChatById = async (req, res, next) => {
     const { token, chatId } = req.body;
     const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
@@ -233,11 +220,11 @@ const getChatById = async (req, res) => {
         res.status(200).json(chat);
     } catch (error) {
         console.error('Error getting chat by ID:', error);
-        res.status(500).json({ message: 'Error getting chat by ID', error });
+        next(error);
     }
 };
 
-const getChatMessages = async (req, res) => {
+const getChatMessages = async (req, res, next) => {
     const { token, chatId } = req.body;
     const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
@@ -249,11 +236,11 @@ const getChatMessages = async (req, res) => {
         res.status(200).json(messages);
     } catch (error) {
         console.error('Error getting chat messages:', error);
-        res.status(500).json({ message: 'Error getting chat messages', error });
+        next(error);
     }
 };
 
-const sendMedia = async (req, res) => {
+const sendMedia = async (req, res, next) => {
     const { token, numero, mediaUrl, caption } = req.body;
     const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
@@ -265,11 +252,11 @@ const sendMedia = async (req, res) => {
         res.status(200).json({ message: 'Media enviado exitosamente.' });
     } catch (error) {
         console.error('Error sending media:', error);
-        res.status(500).json({ message: 'Error al enviar el media', error });
+        next(error);
     }
 };
 
-const getProfilePicUrl = async (req, res) => {
+const getProfilePicUrl = async (req, res, next) => {
     const { token, numero } = req.body;
     const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
@@ -280,11 +267,11 @@ const getProfilePicUrl = async (req, res) => {
         res.status(200).json({ url });
     } catch (error) {
         console.error('Error getting profile picture URL:', error);
-        res.status(500).json({ message: 'Error getting profile picture URL', error });
+        next(error);
     }
 };
 
-const getState = async (req, res) => {
+const getState = async (req, res, next) => {
     const { token } = req.body;
     const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
@@ -295,11 +282,11 @@ const getState = async (req, res) => {
         res.status(200).json({ state });
     } catch (error) {
         console.error('Error getting client state:', error);
-        res.status(500).json({ message: 'Error getting client state', error });
+        next(error);
     }
 };
 
-const logout = async (req, res) => {
+const logout = async (req, res, next) => {
     const { token } = req.body;
     const clientInfo = clients[token];
     if (clientInfo) {
@@ -311,13 +298,12 @@ const logout = async (req, res) => {
             res.status(200).json({ message: 'Client logged out successfully.' });
         } catch (error) {
             console.error('Error logging out:', error);
-            res.status(500).json({ message: 'Error logging out', error });
+            next(error);
         }
     } else {
         res.status(400).json({ message: 'Client not initialized' });
     }
 };
-
 
 module.exports = { 
     initializeClient, generateQR, sendMessage, checkSession, 

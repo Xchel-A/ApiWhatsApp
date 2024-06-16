@@ -7,7 +7,7 @@ const https = require('https');
 const cors = require('cors');
 
 const whatsappRoutes = require('./routes/whatsappRoutes');
-const chatgptRoutes = require('./routes/chatgptRoutes'); // Asegúrate de que este nombre coincida exactamente
+const chatgptRoutes = require('./routes/chatgptRoutes');
 
 const app = express();
 
@@ -32,6 +32,12 @@ app.use(express.static(path.join(__dirname, 'views')));
 // Usar las rutas de WhatsApp y ChatGPT
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/chatgpt', chatgptRoutes);
+
+// Middleware de manejo de errores
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Ocurrió un error interno en el servidor' });
+});
 
 // Redirigir tráfico HTTP a HTTPS
 const httpApp = express();
