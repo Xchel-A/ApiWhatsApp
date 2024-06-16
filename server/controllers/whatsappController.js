@@ -323,5 +323,5 @@ module.exports = {
     initializeClient, generateQR, sendMessage, checkSession, 
     getChats, getContacts, getChatById, 
     getChatMessages, sendMedia, getProfilePicUrl, 
-    getState, logout, shutdownAllClients
+    getState, logout
 };

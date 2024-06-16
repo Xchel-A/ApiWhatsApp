@@ -3,7 +3,7 @@ const {
     initializeClient, generateQR, sendMessage, checkSession,
     getChats, getContacts, getChatById,
     getChatMessages, sendMedia, getProfilePicUrl,
-    getState, logout, shutdownAllClients
+    getState, logout
 } = require('../controllers/whatsappController');
 const router = express.Router();
 
