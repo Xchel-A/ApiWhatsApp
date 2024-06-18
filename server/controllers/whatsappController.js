@@ -240,21 +240,22 @@ const getChatMessages = async (req, res, next) => {
     }
 };
 
-const sendMedia = async (req, res, next) => {
+const sendMedia = async (req, res) => {
     const { token, numero, mediaUrl, caption } = req.body;
     const clientInfo = clients[token];
     if (!clientInfo || !clientInfo.isLoggedIn) {
         return res.status(400).json({ message: 'WhatsApp client not logged in' });
     }
     try {
-        const media = await MessageMedia.fromUrl(mediaUrl);
+        const media = await MessageMedia.fromUrl(mediaUrl, { unsafeMime: true }); // Agrega unsafeMime: true
         await clientInfo.client.sendMessage(`${numero}@c.us`, media, { caption });
         res.status(200).json({ message: 'Media enviado exitosamente.' });
     } catch (error) {
         console.error('Error sending media:', error);
-        next(error);
+        res.status(500).json({ message: 'Error al enviar el media', error });
     }
 };
+
 
 const getProfilePicUrl = async (req, res, next) => {
     const { token, numero } = req.body;
