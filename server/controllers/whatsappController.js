@@ -316,12 +316,18 @@ const sendMessageWithButtons = async (req, res) => {
     try {
         // Crear los botones
         const buttonArray = botones.map(boton => ({
-            id: boton.id,
-            body: boton.body
+            buttonId: boton.id,
+            buttonText: { displayText: boton.body },
+            type: 1
         }));
 
         // Crear el mensaje con botones
-        const buttonMessage = new Buttons(mensaje, buttonArray, 'Title', 'Footer');
+        const buttonMessage = {
+            contentText: mensaje,
+            footerText: 'Footer',
+            buttons: buttonArray,
+            headerType: 1
+        };
 
         // Enviar el mensaje con botones
         await clientInfo.client.sendMessage(`${numero}@c.us`, buttonMessage);
