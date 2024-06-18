@@ -305,10 +305,37 @@ const logout = async (req, res, next) => {
         res.status(400).json({ message: 'Client not initialized' });
     }
 };
+const sendMessageWithButtons = async (req, res) => {
+    const { token, numero, mensaje, botones } = req.body;
+    const clientInfo = clients[token];
+
+    if (!clientInfo || !clientInfo.isLoggedIn) {
+        return res.status(400).json({ message: 'WhatsApp client not logged in' });
+    }
+
+    try {
+        // Crear los botones
+        const buttonArray = botones.map(boton => ({
+            id: boton.id,
+            body: boton.body
+        }));
+
+        // Crear el mensaje con botones
+        const buttonMessage = new Buttons(mensaje, buttonArray, 'Title', 'Footer');
+
+        // Enviar el mensaje con botones
+        await clientInfo.client.sendMessage(`${numero}@c.us`, buttonMessage);
+        res.status(200).json({ message: 'Mensaje con botones enviado exitosamente.' });
+    } catch (error) {
+        console.error('Error sending message with buttons:', error);
+        res.status(500).json({ message: 'Error al enviar el mensaje con botones', error });
+    }
+};
+
 
 module.exports = { 
     initializeClient, generateQR, sendMessage, checkSession, 
     getChats, getContacts, getChatById, 
     getChatMessages, sendMedia, getProfilePicUrl, 
-    getState, logout
+    getState, logout, sendMessageWithButtons
 };
