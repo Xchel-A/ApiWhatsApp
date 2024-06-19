@@ -1,22 +1,20 @@
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
-const fs = require('fs');
 const http = require('http');
 const https = require('https');
 const cors = require('cors');
+const { privateKey, certificate } = require('./utils/certificate');
+const errorHandler = require('./middlewares/errorHandler');
 
 const whatsappRoutes = require('./routes/whatsappRoutes');
-const chatgptRoutes = require('./routes/chatgptRoutes');
 
 const app = express();
 
-// Lee los certificados SSL
-const privateKey = fs.readFileSync('/etc/letsencrypt/live/dendenmushi.space/privkey.pem', 'utf8');
-const certificate = fs.readFileSync('/etc/letsencrypt/live/dendenmushi.space/fullchain.pem', 'utf8');
+// SSL credentials
 const credentials = { key: privateKey, cert: certificate };
 
-// Configura CORS para permitir todas las solicitudes
+// CORS configuration
 app.use(cors());
 
 app.use(express.json());
@@ -29,17 +27,13 @@ app.use(session({
 
 app.use(express.static(path.join(__dirname, 'views')));
 
-// Usar las rutas de WhatsApp y ChatGPT
+// Use WhatsApp routes
 app.use('/api/whatsapp', whatsappRoutes);
-app.use('/api/chatgpt', chatgptRoutes);
 
-// Middleware de manejo de errores
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ error: 'Ocurrió un error interno en el servidor' });
-});
+// Error handling middleware
+app.use(errorHandler);
 
-// Redirigir tráfico HTTP a HTTPS
+// Redirect HTTP to HTTPS
 const httpApp = express();
 httpApp.use((req, res, next) => {
   if (req.secure) {
@@ -48,7 +42,7 @@ httpApp.use((req, res, next) => {
   res.redirect(`https://${req.headers.host}${req.url}`);
 });
 
-// Crea el servidor HTTPS
+// Create HTTPS server
 const httpsServer = https.createServer(credentials, app);
 const httpServer = http.createServer(httpApp);
 
