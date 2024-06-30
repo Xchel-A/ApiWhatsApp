@@ -1,4 +1,4 @@
-const { Client, LocalAuth, MessageMedia, Buttons, Location, Contact, GroupChat, LocalWebCache } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia, Buttons, Location, Contact, GroupChat } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const axios = require('axios');
 const fs = require('fs');
@@ -19,15 +19,13 @@ const initializeClient = async (token) => {
         return { isLoggedIn: false, message: `Error validating token: ${error.message}` };
     }
 
-    const webCache = new LocalWebCache({ path: '../webcache' });
-
     const client = new Client({
         authStrategy: new LocalAuth({ clientId: token }),
         puppeteer: {
             headless: true,
-            args: ['--no-sandbox', '--disable-gpu'],
+            args: ['--sandbox', '--disable-gpu'],
         },
-        webVersionCache: webCache
+        webVersionCache: { type: 'remote', remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html' }
     });
 
     clients[token] = { client, qrCodeData: '', qrAttempts: 0, isLoggedIn: false };
